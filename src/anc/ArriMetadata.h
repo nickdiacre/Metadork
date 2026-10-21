@@ -28,6 +28,8 @@ struct ArriMetadata {
     bool mirrorShutterRunning = false;
     bool variFrameDuplicate = false;
     std::string lookFile;
+    int activeImageW = 0, activeImageH = 0;  // IDI06 (0x2C/0x30): recording area mapped into the SDI image, px;
+                                             // its aspect identifies the recording mode (Mini LF Open Gate 1721x1198)
     double pixelAspect = 0;       // ICI18 at 0x0C4, float: 1.0 spherical, 1.25..2.0 anamorphic desqueeze (0 = n/a)
 
     // Lens (FIZ)

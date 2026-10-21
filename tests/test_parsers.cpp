@@ -4,6 +4,7 @@
 #include "anc/MetadataProcessor.h"
 #include "log/JsonLogger.h"
 #include "out/Protocols.h"
+#include "out/SensorModes.h"
 #include "out/Settings.h"
 #include <filesystem>
 #include <algorithm>
@@ -346,6 +347,26 @@ int main() {
         CHECK(cs.hasFocal && !cs.hasFocus && !cs.hasIris && cs.hasShutter && cs.hasIso && cs.hasTilt && cs.hasRoll);
         CHECK(cs.hasCaptureRate && cs.captureRateNum == 25 && cs.captureRateDen == 1);
         CHECK(std::fabs(a.pixelAspect - 1.0) < 1e-9 && cs.hasSqueeze && std::fabs(cs.squeeze - 1.0) < 1e-9);
+        // Sensor area derived from the recording area's aspect (1721x1198 = LF Open Gate)
+        CHECK(a.activeImageW == 1721 && a.activeImageH == 1198);
+        CHECK(cs.hasSensor && std::fabs(cs.sensorWidthMm - 36.696) < 1e-9 && std::fabs(cs.sensorHeightMm - 25.542) < 1e-9);
+        CHECK(cs.sensorSource == "derived: LF Open Gate");
+        {
+            // Manual size: only fills in when missing unless forced
+            OutputSettings os;
+            os.manualSensorWidthMm = 24.0; os.manualSensorHeightMm = 13.5;
+            CameraSample c2 = cs;
+            applySensorOverride(c2, os);
+            CHECK(c2.sensorSource == "derived: LF Open Gate");
+            os.sensorOverride = SensorOverride::Always;
+            applySensorOverride(c2, os);
+            CHECK(c2.sensorSource == "manual" && c2.sensorWidthMm == 24.0);
+        }
+        // Ambiguous / unknown modes are not guessed
+        CHECK(guessSensorMode("ALEXA 35", 16.0 / 9.0).candidates.size() == 3 && !guessSensorMode("ALEXA 35", 16.0 / 9.0).mode);
+        CHECK(guessSensorMode("ALEXA Mini LF", 3840.0 / 2160.0).mode && std::string(guessSensorMode("ALEXA Mini LF", 16.0 / 9.0).mode->name) == "LF 16:9 UHD");
+        CHECK(std::fabs(guessSensorMode("ALEXA 35", 4608.0 / 3164.0).mode->widthMm() - 27.9936) < 1e-9);
+        CHECK(!guessSensorMode("ALEXA Mini", 1.5).mode);   // no table for S35 ALEV III bodies yet
         OpenTrackIOFrame of;
         of.includeStatic = true;
         cs.squeeze = 1.333;

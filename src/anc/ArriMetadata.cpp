@@ -63,6 +63,8 @@ bool parseArriBlock(const uint8_t* value, size_t size, ArriMetadata& m) {
     m = ArriMetadata{};
 
     // Image content info
+    m.activeImageW = r.i32(0x002C);
+    m.activeImageH = r.i32(0x0030);
     m.whiteBalanceK = r.u32(0x005C);
     {
         // Pixel aspect ratio / anamorphic desqueeze: IEEE float (Mini LF sends 0x3F800000 = 1.0)

@@ -10,6 +10,15 @@ static void reopen(UdpSender& sock, bool enabled, const std::string& host, int p
     open = sock.isOpen();
 }
 
+void applySensorOverride(CameraSample& s, const OutputSettings& o) {
+    if (o.sensorOverride == SensorOverride::Off || o.manualSensorWidthMm <= 0 || o.manualSensorHeightMm <= 0) return;
+    if (o.sensorOverride == SensorOverride::WhenMissing && s.hasSensor) return;
+    s.hasSensor = true;
+    s.sensorWidthMm = o.manualSensorWidthMm;
+    s.sensorHeightMm = o.manualSensorHeightMm;
+    s.sensorSource = "manual";
+}
+
 OutputManager::OutputManager() : m_otioSourceId(randomUuidUrn()) {}
 
 void OutputManager::apply(const OutputSettings& s) {
@@ -36,8 +45,9 @@ void OutputManager::setVideoRate(int num, int den) {
 }
 
 void OutputManager::onFrame(const FrameMetadata& md) {
-    const CameraSample s = sampleFrom(md);
+    CameraSample s = sampleFrom(md);
     std::lock_guard<std::mutex> l(m_mtx);
+    applySensorOverride(s, m_settings);
     m_status.last = s;
     m_status.hasLast = true;
     if (md.noSignal || (m_settings.onlyWithLens && !s.anyLens())) return;

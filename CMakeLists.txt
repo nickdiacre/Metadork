@@ -22,7 +22,8 @@ add_library(sdimeta_core STATIC
     src/out/Protocols.cpp
     src/out/UdpSender.cpp
     src/out/OutputManager.cpp
-    src/out/Settings.cpp)
+    src/out/Settings.cpp
+    src/out/SensorModes.cpp)
 target_include_directories(sdimeta_core PUBLIC src)
 if(WIN32)
     target_link_libraries(sdimeta_core PUBLIC ws2_32)

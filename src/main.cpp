@@ -7,6 +7,7 @@
 #include "capture/Capture.h"
 #include "log/JsonLogger.h"
 #include "out/OutputManager.h"
+#include "out/SensorModes.h"
 #include "out/Settings.h"
 
 #include <imgui.h>
@@ -219,8 +220,13 @@ void drawSummary(const FrameMetadata& md, bool hasFrame, const CameraSample& cs)
             ImGui::TableSetColumnIndex(0);
             ImGui::TextDisabled("%s", v.label);
             ImGui::TableSetColumnIndex(1);
+            const bool sensorRow = !std::strcmp(v.id, "sensor_width") || !std::strcmp(v.id, "sensor_height");
             if (v.available) ImGui::TextUnformatted(v.display().c_str());
             else ImGui::TextDisabled("n/a");
+            if (sensorRow && !cs.sensorSource.empty() && !std::strcmp(v.id, "sensor_height")) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("(%s)", cs.sensorSource.c_str());
+            }
         }
         ImGui::EndTable();
     }
@@ -589,6 +595,34 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
     if (ui.dirty) { ImGui::SameLine(); ImGui::TextColored(kAmber, "Unapplied changes"); }
     if (st.sendErrors) { ImGui::SameLine(); ImGui::TextDisabled("%llu send errors", (unsigned long long)st.sendErrors); }
 
+    if (ImGui::CollapsingHeader("Sensor size")) {
+        const CameraSample& last = st.last;
+        ImGui::TextDisabled("Camera / derived: %s",
+                            last.sensorSource.empty() ? "none" : (last.hasSensor ? fmt("%.2f", last.sensorWidthMm) + " x " +
+                                fmt("%.2f mm  ", last.sensorHeightMm) + "(" + last.sensorSource + ")" : last.sensorSource).c_str());
+        int mode = int(p.sensorOverride);
+        if (ImGui::Combo("Manual size", &mode, "Off\0Use when the camera has none\0Always use\0")) {
+            p.sensorOverride = SensorOverride(mode);
+            ui.dirty = true;
+        }
+        if (ImGui::BeginCombo("Preset", "Choose a recording mode...")) {
+            for (const auto& m : sensorModes()) {
+                const std::string label = std::string(m.camera) + "  " + m.name + "  " + fmt("%.2f", m.widthMm()) + " x " +
+                                          fmt("%.2f mm", m.heightMm());
+                if (ImGui::Selectable(label.c_str())) {
+                    p.manualSensorWidthMm = m.widthMm();
+                    p.manualSensorHeightMm = m.heightMm();
+                    ui.dirty = true;
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ui.dirty |= ImGui::InputDouble("Width (mm)", &p.manualSensorWidthMm, 0, 0, "%.3f");
+        ui.dirty |= ImGui::InputDouble("Height (mm)", &p.manualSensorHeightMm, 0, 0, "%.3f");
+        ImGui::TextDisabled("ARRI doesn't send sensor size: it is derived from the camera model and the recording area's "
+                            "shape where that is unambiguous. Set a manual size for other modes and cameras.");
+    }
+
     if (ImGui::BeginTabBar("outputs")) {
         if (ImGui::BeginTabItem("FreeD")) { drawFreeD(ui, st, out); ImGui::EndTabItem(); }
         if (ImGui::BeginTabItem("OSC")) { drawOsc(ui, st, out); ImGui::EndTabItem(); }
@@ -894,7 +928,8 @@ int main() {
         }
 
         ImGui::Separator();
-        const CameraSample cs = sampleFrom(md);
+        CameraSample cs = sampleFrom(md);
+        applySensorOverride(cs, outputs.settings());
         if (ImGui::BeginTabBar("tabs")) {
             if (ImGui::BeginTabItem("Summary")) { drawSummary(md, hasFrame, cs); ImGui::EndTabItem(); }
             if (ImGui::BeginTabItem("Input")) { drawInput(md, hasFrame, cs, rddHist, bmdHist); ImGui::EndTabItem(); }

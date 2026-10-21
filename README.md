@@ -20,7 +20,7 @@ Verified on real hardware with an UltraStudio Express Recorder 3G (DeckLink SDK 
 | Tilt / roll | ✅ 0.1° | same fields, not separately verified | ✅ 0.1° | — |
 | Record state | ✅ (take UMID) | Rec Run TC or clip-name changes | Rec Run TC, or HANC-capable DeckLink | ✅ (transport mode) |
 | Clip / reel | ✅ | ✅ | ✅ | — |
-| Sensor size (active) | ✅ | ✅ | — (not on ARRI SDI) | — |
+| Sensor size (active) | ✅ | ✅ | derived from the recording mode (LF / Mini LF, ALEXA 35), or manual | manual |
 | Anamorphic squeeze | ✅ | not yet tested | ✅ | not yet tested |
 | ISO, shutter, WB, fps, model, serial | ✅ | ✅ | ✅ | ✅ (no model) |
 

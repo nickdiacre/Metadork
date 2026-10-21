@@ -38,6 +38,7 @@ struct CameraSample {
     // Camera settings
     bool hasSensor = false;  // effective (active) sensor area for the current imager mode, mm
     double sensorWidthMm = 0, sensorHeightMm = 0;
+    std::string sensorSource;  // "camera", "derived: <mode>", "manual"; or why it is missing (e.g. "ambiguous: ...")
     bool hasIso = false;
     int iso = 0;
     bool hasShutter = false;

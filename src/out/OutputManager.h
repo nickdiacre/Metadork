@@ -3,8 +3,14 @@
 #include "out/UdpSender.h"
 #include <mutex>
 
+enum class SensorOverride { Off, WhenMissing, Always };
+
 struct OutputSettings {
     bool onlyWithLens = true;  // skip frames with no focus / iris / zoom
+
+    // Manual sensor area, for cameras / modes that don't report or can't be derived (or to force a value).
+    SensorOverride sensorOverride = SensorOverride::WhenMissing;
+    double manualSensorWidthMm = 0, manualSensorHeightMm = 0;  // 0 = not set
 
     bool freedEnabled = false;
     std::string freedHost = "127.0.0.1";
@@ -24,6 +30,9 @@ struct OutputSettings {
 
     std::string otioDestination() const { return otioMulticast ? openTrackIOMulticast(otio.sourceNumber) : otioHost; }
 };
+
+// Applies the manual sensor area to a sample according to the settings.
+void applySensorOverride(CameraSample& s, const OutputSettings& o);
 
 // Sends FreeD, OSC and / or OpenTrackIO for every captured frame. onFrame runs on the capture thread;
 // apply / setVideoRate / status are called from the UI thread.

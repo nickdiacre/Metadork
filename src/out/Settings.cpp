@@ -50,6 +50,9 @@ std::string settingsToString(const AppSettings& s) {
       << "log_path=" << s.logPath << "\n"
       << "log_raw=" << b(s.logRaw) << "\n"
       << "only_with_lens=" << b(o.onlyWithLens) << "\n"
+      << "sensor_override=" << int(o.sensorOverride) << "\n"
+      << "manual_sensor_width_mm=" << d(o.manualSensorWidthMm) << "\n"
+      << "manual_sensor_height_mm=" << d(o.manualSensorHeightMm) << "\n"
       << "freed_enabled=" << b(o.freedEnabled) << "\n"
       << "freed_host=" << o.freedHost << "\n"
       << "freed_port=" << o.freedPort << "\n"
@@ -106,6 +109,11 @@ void settingsFromString(const std::string& text, AppSettings& s) {
     str("log_path", s.logPath);
     boolean("log_raw", s.logRaw);
     boolean("only_with_lens", o.onlyWithLens);
+    int so = int(o.sensorOverride);
+    integer("sensor_override", so);
+    o.sensorOverride = SensorOverride(std::clamp(so, 0, 2));
+    real("manual_sensor_width_mm", o.manualSensorWidthMm);
+    real("manual_sensor_height_mm", o.manualSensorHeightMm);
     boolean("freed_enabled", o.freedEnabled);
     str("freed_host", o.freedHost);
     integer("freed_port", o.freedPort);

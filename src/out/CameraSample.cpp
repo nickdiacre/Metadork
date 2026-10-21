@@ -1,4 +1,5 @@
 #include "out/CameraSample.h"
+#include "out/SensorModes.h"
 #include <cmath>
 #include <cstdio>
 #include <sstream>
@@ -69,6 +70,22 @@ void fillArri(const FrameMetadata& md, CameraSample& s) {
     if (a.whiteBalanceK) { s.hasWhiteBalance = true; s.whiteBalanceK = int(a.whiteBalanceK); }
     if (a.sensorFps > 0) { s.hasCaptureRate = true; fpsRational(a.sensorFps, s.captureRateNum, s.captureRateDen); }
     if (a.pixelAspect > 0) { s.hasSqueeze = true; s.squeeze = a.pixelAspect; }
+    // ARRI sends no sensor size: derive it from the camera model and the recording area's aspect.
+    if (a.activeImageW > 0 && a.activeImageH > 0) {
+        const SensorGuess g = guessSensorMode(s.cameraModel + " " + a.cameraTypeName, double(a.activeImageW) / a.activeImageH);
+        if (g.mode) {
+            s.hasSensor = true;
+            s.sensorWidthMm = g.mode->widthMm();
+            s.sensorHeightMm = g.mode->heightMm();
+            s.sensorSource = std::string("derived: ") + g.mode->name;
+        } else if (g.candidates.size() > 1) {
+            s.sensorSource = "ambiguous:";
+            for (const auto* m : g.candidates) s.sensorSource += std::string(" ") + m->name + ",";
+            s.sensorSource.pop_back();
+        } else {
+            s.sensorSource = "recording mode not in table";
+        }
+    }
     if (a.hasTilt) { s.hasTilt = true; s.tilt = a.tiltDeg; }
     if (a.hasRoll) { s.hasRoll = true; s.roll = a.rollDeg; }
 }
@@ -102,6 +119,7 @@ void fillSony(const FrameMetadata& md, CameraSample& s) {
     if (const Rdd18Item *w = r.find(K::Camera, 0x8104), *h = r.find(K::Camera, 0x8105);
         w && h && w->value.size() == 2 && h->value.size() == 2) {
         s.hasSensor = true;
+        s.sensorSource = "camera";
         s.sensorWidthMm = beValue(w->value) / 1000.0;  // micrometres
         s.sensorHeightMm = beValue(h->value) / 1000.0;
     }
