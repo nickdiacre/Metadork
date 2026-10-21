@@ -8,20 +8,49 @@
 #include <string>
 #include <vector>
 
-// Enumerates DeckLink devices that have an input.
+// One DeckLink device. Multi-port cards (e.g. DeckLink 8K Pro) appear as one sub-device per port; which ports are
+// usable depends on the card's active profile (an inactive sub-device cannot capture).
+struct DeckLinkPort {
+    IDeckLink* device = nullptr;
+    std::string name;          // e.g. "DeckLink 8K Pro (1)"
+    std::string model;         // e.g. "DeckLink 8K Pro"
+    int subIndex = 0, subCount = 1;
+    int64_t persistentId = 0;  // shared by the sub-devices of one card (low bits differ)
+    int64_t duplex = 0;        // BMDDuplexMode
+    int64_t connections = 0;   // BMDVideoConnection bit field of supported input connectors
+    bool hancInput = false;    // can capture HANC (the ARRI record flag)
+    bool active() const { return duplex != bmdDuplexInactive; }
+    std::string label() const;  // name + port / duplex summary for the UI
+};
+
+struct DeckLinkProfileInfo {
+    int64_t id = 0;  // BMDProfileID
+    std::string name;
+    bool active = false;
+};
+
+// Enumerates DeckLink devices that have an input interface (including ports inactive in the current profile).
 class DeckLinkDevices {
 public:
     DeckLinkDevices();
     ~DeckLinkDevices();
     bool driverPresent() const { return m_driver; }
-    const std::vector<std::string>& names() const { return m_names; }
-    IDeckLink* device(size_t i) const { return i < m_devices.size() ? m_devices[i] : nullptr; }
+    const std::vector<DeckLinkPort>& ports() const { return m_ports; }
+    size_t size() const { return m_ports.size(); }
+    IDeckLink* device(size_t i) const { return i < m_ports.size() ? m_ports[i].device : nullptr; }
+
+    // Profiles of the card that port i belongs to. Activating one applies to the whole card (all its ports, and any
+    // other application using it); completes asynchronously, so rescan devices afterwards.
+    std::vector<DeckLinkProfileInfo> profiles(size_t i) const;
+    bool activateProfile(size_t i, int64_t profileId, std::string& err) const;
 
 private:
     bool m_driver = false;
-    std::vector<IDeckLink*> m_devices;
-    std::vector<std::string> m_names;
+    std::vector<DeckLinkPort> m_ports;
 };
+
+const char* videoConnectionName(int64_t connection);  // single BMDVideoConnection bit
+const char* profileIdName(int64_t profileId);
 
 // SDK 14.3 moved pixel access off IDeckLinkVideoFrame onto IDeckLinkVideoBuffer.
 #if BLACKMAGIC_DECKLINK_API_VERSION >= 0x0e030000
@@ -89,7 +118,8 @@ public:
 
     static CaptureSession* create(IDeckLink* device, FrameHandler handler);  // ref count 1
 
-    bool start(std::string& err);
+    // connection: BMDVideoConnection to select (0 = leave the device's current setting).
+    bool start(std::string& err, int64_t connection = bmdVideoConnectionSDI);
     void stop();
     InputStatus status() const;
     void setRecFromTimecode(bool on) { m_processor.setRecFromTimecode(on); }

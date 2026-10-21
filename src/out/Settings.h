@@ -9,6 +9,7 @@ struct AppSettings {
     bool logRaw = true;
     bool recFromTc = true;
     std::string deviceName;   // last used input; matched by name on the next launch
+    long long inputConnection = 1;  // BMDVideoConnection (1 = SDI)
     float panelWidth = 560.0f;
     bool showVideo = true;
 };

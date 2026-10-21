@@ -43,6 +43,7 @@ std::string settingsToString(const AppSettings& s) {
     std::ostringstream w;
     w << "# SDI Metadata Viewer settings\n"
       << "device=" << s.deviceName << "\n"
+      << "input_connection=" << s.inputConnection << "\n"
       << "panel_width=" << d(s.panelWidth) << "\n"
       << "show_video=" << b(s.showVideo) << "\n"
       << "rec_from_timecode=" << b(s.recFromTc) << "\n"
@@ -96,6 +97,7 @@ void settingsFromString(const std::string& text, AppSettings& s) {
     };
     auto& o = s.outputs;
     str("device", s.deviceName);
+    if (auto it = kv.find("input_connection"); it != kv.end()) try { s.inputConnection = std::stoll(it->second); } catch (...) {}
     double pw = s.panelWidth;
     real("panel_width", pw);
     s.panelWidth = float(pw);

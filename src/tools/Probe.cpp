@@ -9,6 +9,7 @@
 //
 // Usage: sdimeta_probe [seconds=5] [device index=0] [--dump] [--watch]
 //   --dump   also print the hex payload of every ANC packet in the last frame that had any
+//   --list   list every DeckLink device / port: sub-device, duplex, profiles, connectors, HANC support; then exit
 //   --raw    print every ANC packet of every frame as hex, with time and TC (for offline analysis)
 //   --watch  print every decoded metadata change (RDD 18 items, clip, TC running/stopped) as it happens,
 //            e.g. while toggling REC or racking a lens
@@ -361,12 +362,108 @@ void printStatusFlag(IDeckLinkStatus* st, BMDDeckLinkStatusID id, const char* la
 
 }  // namespace
 
+const char* duplexName(int64_t d) {
+    switch (d) {
+        case bmdDuplexFull: return "full duplex";
+        case bmdDuplexHalf: return "half duplex";
+        case bmdDuplexSimplex: return "simplex";
+        case bmdDuplexInactive: return "INACTIVE in this profile";
+        default: return "?";
+    }
+}
+
+const char* profileName(int64_t p) {
+    switch (p) {
+        case bmdProfileOneSubDeviceFullDuplex: return "1 sub-device, full duplex";
+        case bmdProfileOneSubDeviceHalfDuplex: return "1 sub-device, half duplex";
+        case bmdProfileTwoSubDevicesFullDuplex: return "2 sub-devices, full duplex";
+        case bmdProfileTwoSubDevicesHalfDuplex: return "2 sub-devices, half duplex";
+        case bmdProfileFourSubDevicesHalfDuplex: return "4 sub-devices, half duplex";
+        default: return "?";
+    }
+}
+
+std::string connections(int64_t c) {
+    std::string s;
+    const std::pair<int64_t, const char*> names[] = {{bmdVideoConnectionSDI, "SDI"}, {bmdVideoConnectionHDMI, "HDMI"},
+        {bmdVideoConnectionOpticalSDI, "optical SDI"}, {bmdVideoConnectionComponent, "component"},
+        {bmdVideoConnectionComposite, "composite"}, {bmdVideoConnectionSVideo, "S-video"},
+        {bmdVideoConnectionEthernet, "Ethernet"}, {bmdVideoConnectionOpticalEthernet, "optical Ethernet"}};
+    for (const auto& [bit, n] : names)
+        if (c & bit) s += (s.empty() ? "" : ", ") + std::string(n);
+    return s.empty() ? "none" : s;
+}
+
+int listDevices() {
+    IDeckLinkIterator* iter = dlp::createIterator();
+    if (!iter) { std::fprintf(stderr, "DeckLink driver not found\n"); return 1; }
+    IDeckLink* d = nullptr;
+    int index = 0;
+    while (iter->Next(&d) == S_OK && d) {
+        dl_string nm = nullptr;
+        const std::string name = d->GetDisplayName(&nm) == S_OK ? dlp::toStd(nm) : "?";
+        IDeckLinkInput* in = nullptr;
+        const bool hasInput = d->QueryInterface(IID_IDeckLinkInput, (void**)&in) == S_OK && in;
+        if (in) in->Release();
+        std::printf("[%d] %s%s\n", index++, name.c_str(), hasInput ? "" : "  (no input interface)");
+        IDeckLinkProfileAttributes* a = nullptr;
+        if (d->QueryInterface(IID_IDeckLinkProfileAttributes, (void**)&a) == S_OK && a) {
+            int64_t v = 0;
+            dl_string str = nullptr;
+            if (a->GetString(BMDDeckLinkModelName, &str) == S_OK) std::printf("    model            %s\n", dlp::toStd(str).c_str());
+            if (a->GetInt(BMDDeckLinkSubDeviceIndex, &v) == S_OK) {
+                int64_t n = 0;
+                a->GetInt(BMDDeckLinkNumberOfSubDevices, &n);
+                std::printf("    sub-device       %lld of %lld\n", (long long)v + 1, (long long)n);
+            }
+            if (a->GetInt(BMDDeckLinkPersistentID, &v) == S_OK) std::printf("    persistent ID    %llx\n", (unsigned long long)v);
+            if (a->GetInt(BMDDeckLinkDuplex, &v) == S_OK) std::printf("    duplex           %s\n", duplexName(v));
+            if (a->GetInt(BMDDeckLinkProfileID, &v) == S_OK) std::printf("    active profile   %s\n", profileName(v));
+            if (a->GetInt(BMDDeckLinkVideoInputConnections, &v) == S_OK) std::printf("    input connectors %s\n", connections(v).c_str());
+            if (a->GetInt(BMDDeckLinkDeviceInterface, &v) == S_OK)
+                std::printf("    interface        %s\n", v == bmdDeviceInterfacePCI ? "PCIe" : v == bmdDeviceInterfaceUSB ? "USB" : "Thunderbolt");
+            dl_bool f = false;
+            if (a->GetFlag(BMDDeckLinkSupportsHANCInput, &f) == S_OK) std::printf("    HANC input       %s\n", f ? "yes" : "no");
+            if (a->GetFlag(BMDDeckLinkSupportsDualLinkSDI, &f) == S_OK) std::printf("    dual link SDI    %s\n", f ? "yes" : "no");
+            if (a->GetFlag(BMDDeckLinkSupportsQuadLinkSDI, &f) == S_OK) std::printf("    quad link SDI    %s\n", f ? "yes" : "no");
+            a->Release();
+        }
+        IDeckLinkProfileManager* pm = nullptr;
+        if (d->QueryInterface(IID_IDeckLinkProfileManager, (void**)&pm) == S_OK && pm) {
+            IDeckLinkProfileIterator* pi = nullptr;
+            if (pm->GetProfiles(&pi) == S_OK && pi) {
+                IDeckLinkProfile* prof = nullptr;
+                std::printf("    profiles        ");
+                while (pi->Next(&prof) == S_OK && prof) {
+                    IDeckLinkProfileAttributes* pa = nullptr;
+                    int64_t id = 0;
+                    dl_bool active = false;
+                    prof->IsActive(&active);
+                    if (prof->QueryInterface(IID_IDeckLinkProfileAttributes, (void**)&pa) == S_OK && pa) {
+                        pa->GetInt(BMDDeckLinkProfileID, &id);
+                        pa->Release();
+                    }
+                    std::printf(" [%s%s]", profileName(id), active ? " *" : "");
+                    prof->Release();
+                }
+                std::printf("\n");
+                pi->Release();
+            }
+            pm->Release();
+        }
+        d->Release();
+    }
+    iter->Release();
+    return 0;
+}
+
 int main(int argc, char** argv) {
     std::vector<const char*> pos;
     for (int i = 1; i < argc; ++i) {
         if (std::string(argv[i]) == "--dump") gDump = true;
         else if (std::string(argv[i]) == "--watch") gWatch = true;
         else if (std::string(argv[i]) == "--raw") gRaw = true;
+        else if (std::string(argv[i]) == "--list") { dlp::initialise(); return listDevices(); }
         else pos.push_back(argv[i]);
     }
     const int seconds = pos.size() > 0 ? std::max(1, std::atoi(pos[0])) : 5;

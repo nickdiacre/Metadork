@@ -647,8 +647,14 @@ int main() {
 
     CaptureSession* session = nullptr;
     int deviceIndex = 0;
-    for (size_t i = 0; i < devices->names().size(); ++i)
-        if (devices->names()[i] == app.deviceName) deviceIndex = int(i);
+    auto selectByName = [&](const std::string& name) {
+        for (size_t i = 0; i < devices->size(); ++i)
+            if (devices->ports()[i].name == name) deviceIndex = int(i);
+    };
+    selectByName(app.deviceName);
+    int64_t inputConnection = app.inputConnection;
+    std::string profileMessage;
+    double rescanAt = 0;  // after a profile change the card re-enumerates asynchronously
     int selectedPacket = -1;
     std::string lastError;
     char logPath[512];
@@ -663,7 +669,8 @@ int main() {
         app.logPath = logPath;
         app.logRaw = logRaw;
         app.recFromTc = recFromTc;
-        if (deviceIndex < int(devices->names().size())) app.deviceName = devices->names()[size_t(deviceIndex)];
+        if (deviceIndex < int(devices->size())) app.deviceName = devices->ports()[size_t(deviceIndex)].name;
+        app.inputConnection = inputConnection;
         app.panelWidth = panelW;
         app.showVideo = preview.enabled;
         saveSettings(settingsPath, app);
@@ -771,30 +778,107 @@ int main() {
         ImGui::Begin("Metadata", nullptr, fixed);
         ImGui::PushTextWrapPos(0.0f);  // wrap all text at the window / table-column edge instead of overflowing
 
+        if (rescanAt > 0 && glfwGetTime() >= rescanAt && !session) {
+            const std::string keep = deviceIndex < int(devices->size()) ? devices->ports()[size_t(deviceIndex)].name : "";
+            devices = std::make_unique<DeckLinkDevices>();
+            deviceIndex = 0;
+            selectByName(keep);
+            rescanAt = 0;
+        }
         if (!devices->driverPresent()) {
             ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "Blackmagic Desktop Video driver not found.");
-        } else if (devices->names().empty()) {
+        } else if (devices->size() == 0) {
             ImGui::TextDisabled("No DeckLink inputs found.");
             if (ImGui::Button("Rescan")) devices = std::make_unique<DeckLinkDevices>();
         } else {
+            const auto& ports = devices->ports();
+            if (deviceIndex >= int(ports.size())) deviceIndex = 0;
             ImGui::BeginDisabled(session != nullptr);
-            const auto& names = devices->names();
-            if (deviceIndex >= int(names.size())) deviceIndex = 0;
-            if (ImGui::BeginCombo("Input", names[deviceIndex].c_str())) {
-                for (int i = 0; i < int(names.size()); ++i)
-                    if (ImGui::Selectable((names[i] + "##" + std::to_string(i)).c_str(), i == deviceIndex)) deviceIndex = i;
+
+            // Port (sub-device) list; ports inactive in the card's current profile can't be selected
+            if (ImGui::BeginCombo("Input port", ports[size_t(deviceIndex)].label().c_str())) {
+                for (int i = 0; i < int(ports.size()); ++i) {
+                    ImGui::BeginDisabled(!ports[size_t(i)].active());
+                    if (ImGui::Selectable((ports[size_t(i)].label() + "##port" + std::to_string(i)).c_str(), i == deviceIndex))
+                        deviceIndex = i;
+                    ImGui::EndDisabled();
+                }
                 ImGui::EndCombo();
             }
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Rescan")) {
+                const std::string keep = ports[size_t(deviceIndex)].name;
+                devices = std::make_unique<DeckLinkDevices>();
+                deviceIndex = 0;
+                selectByName(keep);
+            }
+            const DeckLinkPort& port = devices->ports()[size_t(deviceIndex)];
+
+            // Connector, from what this port advertises
+            std::vector<int64_t> connectors;
+            for (int64_t bit = 1; bit <= (int64_t(1) << 8); bit <<= 1)
+                if (port.connections & bit) connectors.push_back(bit);
+            if (!(port.connections & inputConnection))
+                inputConnection = (port.connections & bmdVideoConnectionSDI) ? bmdVideoConnectionSDI : connectors.front();
+            if (connectors.size() > 1) {
+                if (ImGui::BeginCombo("Connector", videoConnectionName(inputConnection))) {
+                    for (int64_t c : connectors)
+                        if (ImGui::Selectable(videoConnectionName(c), c == inputConnection)) inputConnection = c;
+                    ImGui::EndCombo();
+                }
+            } else {
+                ImGui::TextDisabled("Connector: %s", videoConnectionName(inputConnection));
+            }
             ImGui::EndDisabled();
+            ImGui::TextDisabled("%s  |  ARRI record flag (HANC): %s", port.model.empty() ? "DeckLink" : port.model.c_str(),
+                                port.hancInput ? "can capture" : "not supported by this device");
+
+            // Card profile (multi-port cards): decides how many ports exist and whether they are full or half duplex
+            const auto profiles = devices->profiles(size_t(deviceIndex));
+            if (profiles.size() > 1) {
+                static int64_t pending = 0;
+                int64_t activeId = 0;
+                for (const auto& pr : profiles) if (pr.active) activeId = pr.id;
+                if (!pending) pending = activeId;
+                ImGui::BeginDisabled(session != nullptr || rescanAt > 0);
+                if (ImGui::BeginCombo("Card profile", profileIdName(pending))) {
+                    for (const auto& pr : profiles)
+                        if (ImGui::Selectable((pr.name + (pr.active ? "  (active)" : "")).c_str(), pr.id == pending)) pending = pr.id;
+                    ImGui::EndCombo();
+                }
+                if (pending != activeId) {
+                    ImGui::SameLine();
+                    if (ImGui::Button("Activate")) {
+                        std::string err;
+                        if (devices->activateProfile(size_t(deviceIndex), pending, err)) {
+                            profileMessage = std::string("Switching card to: ") + profileIdName(pending);
+                            rescanAt = glfwGetTime() + 1.5;
+                        } else {
+                            profileMessage = err;
+                        }
+                        pending = 0;
+                    }
+                    ImGui::TextColored(kAmber, "Changes the whole card, including any other app using it (e.g. Stage Precision).");
+                }
+                ImGui::EndDisabled();
+                if (session) ImGui::TextDisabled("Stop capture to change the card profile.");
+                if (!profileMessage.empty()) ImGui::TextDisabled("%s", profileMessage.c_str());
+            }
+            if (!port.active())
+                ImGui::TextColored(kAmber, "This port is inactive in the card's current profile. Pick an active port, or "
+                                           "a profile with more ports.");
+
             if (!session) {
+                ImGui::BeginDisabled(!port.active());
                 if (ImGui::Button("Start capture")) {
                     shared.reset();
                     session = CaptureSession::create(devices->device(size_t(deviceIndex)), handler);
                     session->setRecFromTimecode(recFromTc);
-                    if (!session->start(lastError)) { session->Release(); session = nullptr; }
+                    if (!session->start(lastError, inputConnection)) { session->Release(); session = nullptr; }
                     else lastError.clear();
                     save();
                 }
+                ImGui::EndDisabled();
             } else if (ImGui::Button("Stop capture")) {
                 session->stop();
                 session->Release();

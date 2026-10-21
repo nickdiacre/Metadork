@@ -9,6 +9,40 @@ static double steadySeconds() {
 
 // ---------------------------------------------------------------- devices
 
+const char* videoConnectionName(int64_t c) {
+    switch (c) {
+        case bmdVideoConnectionSDI: return "SDI";
+        case bmdVideoConnectionHDMI: return "HDMI";
+        case bmdVideoConnectionOpticalSDI: return "Optical SDI";
+        case bmdVideoConnectionComponent: return "Component";
+        case bmdVideoConnectionComposite: return "Composite";
+        case bmdVideoConnectionSVideo: return "S-Video";
+        case bmdVideoConnectionEthernet: return "Ethernet";
+        case bmdVideoConnectionOpticalEthernet: return "Optical Ethernet";
+        default: return "Other";
+    }
+}
+
+const char* profileIdName(int64_t p) {
+    switch (p) {
+        case bmdProfileOneSubDeviceFullDuplex: return "1 port, full duplex";
+        case bmdProfileOneSubDeviceHalfDuplex: return "1 port, half duplex";
+        case bmdProfileTwoSubDevicesFullDuplex: return "2 ports, full duplex";
+        case bmdProfileTwoSubDevicesHalfDuplex: return "2 ports, half duplex";
+        case bmdProfileFourSubDevicesHalfDuplex: return "4 ports, half duplex";
+        default: return "Unknown profile";
+    }
+}
+
+std::string DeckLinkPort::label() const {
+    std::string s = name;
+    if (subCount > 1) s += "  -  port " + std::to_string(subIndex + 1) + "/" + std::to_string(subCount);
+    if (!active()) s += "  (inactive in current profile)";
+    else if (duplex == bmdDuplexFull) s += ", full duplex";
+    else if (duplex == bmdDuplexHalf) s += ", half duplex";
+    return s;
+}
+
 DeckLinkDevices::DeckLinkDevices() {
     IDeckLinkIterator* it = dlp::createIterator();
     if (!it) return;
@@ -16,21 +50,78 @@ DeckLinkDevices::DeckLinkDevices() {
     IDeckLink* dl = nullptr;
     while (it->Next(&dl) == S_OK) {
         IDeckLinkInput* in = nullptr;
-        if (dl->QueryInterface(IID_IDeckLinkInput, (void**)&in) == S_OK && in) {
-            in->Release();
-            dl_string name = nullptr;
-            std::string n = (dl->GetDisplayName(&name) == S_OK) ? dlp::toStd(name) : "DeckLink";
-            m_devices.push_back(dl);
-            m_names.push_back(n);
-        } else {
-            dl->Release();
+        if (dl->QueryInterface(IID_IDeckLinkInput, (void**)&in) != S_OK || !in) { dl->Release(); continue; }
+        in->Release();
+        DeckLinkPort p;
+        p.device = dl;
+        dl_string name = nullptr;
+        p.name = (dl->GetDisplayName(&name) == S_OK) ? dlp::toStd(name) : "DeckLink";
+        p.duplex = bmdDuplexFull;
+        p.connections = bmdVideoConnectionSDI;
+        IDeckLinkProfileAttributes* a = nullptr;
+        if (dl->QueryInterface(IID_IDeckLinkProfileAttributes, (void**)&a) == S_OK && a) {
+            int64_t v = 0;
+            dl_string str = nullptr;
+            if (a->GetString(BMDDeckLinkModelName, &str) == S_OK) p.model = dlp::toStd(str);
+            if (a->GetInt(BMDDeckLinkSubDeviceIndex, &v) == S_OK) p.subIndex = int(v);
+            if (a->GetInt(BMDDeckLinkNumberOfSubDevices, &v) == S_OK) p.subCount = int(v);
+            a->GetInt(BMDDeckLinkPersistentID, &p.persistentId);
+            if (a->GetInt(BMDDeckLinkDuplex, &v) == S_OK) p.duplex = v;
+            if (a->GetInt(BMDDeckLinkVideoInputConnections, &v) == S_OK && v) p.connections = v;
+            dl_bool f = false;
+            if (a->GetFlag(BMDDeckLinkSupportsHANCInput, &f) == S_OK) p.hancInput = f;
+            a->Release();
         }
+        m_ports.push_back(std::move(p));
     }
     it->Release();
 }
 
 DeckLinkDevices::~DeckLinkDevices() {
-    for (auto* d : m_devices) d->Release();
+    for (auto& p : m_ports) p.device->Release();
+}
+
+std::vector<DeckLinkProfileInfo> DeckLinkDevices::profiles(size_t i) const {
+    std::vector<DeckLinkProfileInfo> out;
+    IDeckLink* d = device(i);
+    IDeckLinkProfileManager* pm = nullptr;
+    if (!d || d->QueryInterface(IID_IDeckLinkProfileManager, (void**)&pm) != S_OK || !pm) return out;
+    IDeckLinkProfileIterator* pi = nullptr;
+    if (pm->GetProfiles(&pi) == S_OK && pi) {
+        IDeckLinkProfile* prof = nullptr;
+        while (pi->Next(&prof) == S_OK && prof) {
+            DeckLinkProfileInfo info;
+            dl_bool active = false;
+            prof->IsActive(&active);
+            info.active = active;
+            IDeckLinkProfileAttributes* pa = nullptr;
+            if (prof->QueryInterface(IID_IDeckLinkProfileAttributes, (void**)&pa) == S_OK && pa) {
+                pa->GetInt(BMDDeckLinkProfileID, &info.id);
+                pa->Release();
+            }
+            info.name = profileIdName(info.id);
+            out.push_back(std::move(info));
+            prof->Release();
+        }
+        pi->Release();
+    }
+    pm->Release();
+    return out;
+}
+
+bool DeckLinkDevices::activateProfile(size_t i, int64_t profileId, std::string& err) const {
+    IDeckLink* d = device(i);
+    IDeckLinkProfileManager* pm = nullptr;
+    if (!d || d->QueryInterface(IID_IDeckLinkProfileManager, (void**)&pm) != S_OK || !pm) {
+        err = "This device has no selectable profiles";
+        return false;
+    }
+    IDeckLinkProfile* prof = nullptr;
+    bool ok = pm->GetProfile(BMDProfileID(profileId), &prof) == S_OK && prof && prof->SetActive() == S_OK;
+    if (!ok) err = "Profile change was refused (is another application using the card?)";
+    if (prof) prof->Release();
+    pm->Release();
+    return ok;
 }
 
 // ---------------------------------------------------------------- session
@@ -65,7 +156,7 @@ ULONG CaptureSession::Release() {
     return r;
 }
 
-bool CaptureSession::start(std::string& err) {
+bool CaptureSession::start(std::string& err, int64_t connection) {
     if (!m_device) { err = "No device"; return false; }
     if (m_device->QueryInterface(IID_IDeckLinkInput, (void**)&m_input) != S_OK || !m_input) {
         err = "Device has no input interface";
@@ -83,10 +174,10 @@ bool CaptureSession::start(std::string& err) {
         return false;
     }
 
-    // Force SDI input where the card has several connectors.
+    // Select the input connector where the device has several (SDI, HDMI, optical SDI ...).
     IDeckLinkConfiguration* cfg = nullptr;
     if (m_device->QueryInterface(IID_IDeckLinkConfiguration, (void**)&cfg) == S_OK && cfg) {
-        cfg->SetInt(bmdDeckLinkConfigVideoInputConnection, bmdVideoConnectionSDI);
+        if (connection) cfg->SetInt(bmdDeckLinkConfigVideoInputConnection, connection);
         // Ask for the ARRI record start/stop flag, which is a HANC packet (DID 0x52 / SDID 0x4D). Devices without
         // HANC input ignore this; the packets then arrive through the normal ancillary packet iterator.
         cfg->SetInt(bmdDeckLinkConfigHANCInputFilter1, 0x524D);
