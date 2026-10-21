@@ -1,0 +1,81 @@
+Device: UltraStudio Express Recorder 3G
+  VANC requires 10-bit YUV frames          no
+Capturing for 3 s...
+
+Signal
+  Detected mode                            1080p24 (YUV 4:2:2)
+  Frames                                   71 (44 flagged no-signal)
+  Video input locked                       yes
+  Ancillary input locked                   yes
+
+ANC packets via IDeckLinkVideoFrameAncillaryPackets (what the viewer reads)
+  frames with >=1 packet: 27
+  DID 51 SDID 52  x27     lines: 15
+  DID 51 SDID 53  x27     lines: 16
+
+Payloads from the last frame with packets
+  DID 51 SDID 52 line 15, 1 bytes
+    00
+  DID 51 SDID 53 line 16, 240 bytes
+    FF 08 00 00 09 04 03 02 14 14 18 07 FF 08 00 00 09 05 01 02 00 09 01 03 FF 06 00 00 09 06 01 02
+    00 01 00 00 FF 08 00 00 01 0B 03 02 28 23 00 00 FF 06 00 00 00 02 80 02 C4 07 00 00 FF 08 00 00
+    01 0E 03 02 20 03 00 00 FF 08 00 00 01 02 02 02 64 19 00 00 FF 0E 00 00 01 09 02 02 18 00 18 00
+    80 07 38 04 00 00 00 00 FF 06 00 00 0A 00 01 02 02 01 00 00 FF 0A 00 00 09 00 02 02 00 00 00 00
+    02 00 00 00 FF 0C 00 00 09 07 02 02 DE 03 A0 0F 00 00 00 00 FF 09 00 00 0A 01 01 02 00 00 40 00
+    00 00 00 00 FF 06 00 00 09 01 01 02 00 01 00 00 FF 0C 00 00 09 02 02 02 00 00 C6 FD 00 00 00 00
+    FF 05 00 00 01 07 01 02 01 00 00 00 FF 08 00 00 03 03 01 02 01 32 5A 00 FF 06 00 00 03 00 02 02
+    00 00 00 00 FF 06 00 00 01 0F 01 02 02 01 00 00
+
+Timecode, each source queried separately
+  RP188 VITC1          27 frames, last 07:18:14:14
+  RP188 VITC2          -
+  RP188 LTC            -
+  RP188 HFR            -
+  RP188 Any            27 frames, last 07:18:14:14
+  VITC (SD)            -
+  VITC field 2 (SD)    -
+
+Raw VANC lines via IDeckLinkVideoFrameAncillary
+  zero = buffer all zeros (driver likely not capturing VANC); black = real empty blanking
+  line  captured   zero  black  with-ADF  DID/SDID found
+     1        27      0     27         0 
+     2        27      0     27         0 
+     3        27      0     27         0 
+     4        27      0     27         0 
+     5        27      0     27         0 
+     6        27      0     27         0 
+     7        27      0     27         0 
+     8        27      0     27         0 
+     9        27      0     27         0 
+    10        27      0     27         0 
+    11        27      0     27         0 
+    12        27      0     27         0 
+    13        27      0     27         0 
+    14        27      0     27         0 
+    15        27      0      0        27  51/52
+    16        27      0      0        27  51/53
+    17        27      0     27         0 
+    18        27      0     27         0 
+    19        27      0     27         0 
+    20        27      0     27         0 
+    21        27      0     27         0 
+    22        27      0     27         0 
+    23        27      0     27         0 
+    24        27      0     27         0 
+    25        27      0     27         0 
+    26        27      0     27         0 
+    27        27      0     27         0 
+    28        27      0     27         0 
+    29        27      0     27         0 
+    30        27      0     27         0 
+    31        27      0     27         0 
+    32        27      0     27         0 
+    33        27      0     27         0 
+    34        27      0     27         0 
+    35        27      0     27         0 
+    36        27      0     27         0 
+    37        27      0     27         0 
+    38        27      0     27         0 
+    39        27      0     27         0 
+    40        27      0     27         0 
+    41        27      0     27         0 

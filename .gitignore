@@ -1,0 +1,5 @@
+build/
+xcode/
+.vscode/
+*.jsonl
+.DS_Store
