@@ -109,6 +109,7 @@ FrameMetadata MetadataProcessor::process(std::vector<AncPacket>&& packets, const
     md.hasRdd18 = md.rdd18.packets > 0;
 
     const std::string clip = md.hasArri ? md.arri.clip() : !md.sonyClip.empty() ? md.sonyClip : md.red.valid ? md.red.clipName() : "";
-    md.recordingName = m_take.update(md.rec == RecState::Recording ? 1 : md.rec == RecState::Stopped ? 0 : -1, clip, hostTime);
+    const bool redClip = !md.hasArri && md.sonyClip.empty() && md.red.valid;
+    md.recordingName = m_take.update(md.rec == RecState::Recording ? 1 : md.rec == RecState::Stopped ? 0 : -1, clip, hostTime, redClip);
     return md;
 }

@@ -755,6 +755,10 @@ int main() {
         CHECK(last.rec == RecState::Recording && last.recSource == "RED record flag (timecode user bits)");
         const MetaRecord r = buildRecord(last);
         CHECK(r.kind == CameraKind::Red && r.str(Field::Clip) == "R003_A007_102263" && r.str(Field::CameraIndex) == "R");
+        CHECK(last.recordingName == "R003_A007_102263");                     // name known before REC (RED)
+        t.userBits = 0x7E410084;                                                // stopped; next clip appears later
+        for (int i = 0; i < 4; ++i) { t.userBits = i % 2 ? 0x7E410084 : 0x16AC0034; last = red.process({}, t, false, 1 + i * 0.04); }
+        CHECK(last.rec == RecState::Stopped && last.recordingName == "R003_A007_102263");  // held after stop
     }
 
     std::printf(g_fail ? "%d FAILED\n" : "All parser tests passed\n", g_fail);

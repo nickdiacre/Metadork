@@ -1,6 +1,6 @@
 #include "anc/TakeTracker.h"
 
-const std::string& TakeTracker::update(int recording, const std::string& clip, double t) {
+const std::string& TakeTracker::update(int recording, const std::string& clip, double t, bool clipIsNextTake) {
     // A record start: forget the previous take's name only once the new one is known (it stays valid until then).
     const bool nowRecording = recording == 1;
     if (nowRecording && !m_recording) m_recStart = t;
@@ -16,6 +16,7 @@ const std::string& TakeTracker::update(int recording, const std::string& clip, d
     // While rolling: accept the candidate once it first appeared at / after REC start (with a one-frame margin, since
     // the record state can lag the name by a frame) and has been stable for the settle time.
     const double margin = 0.1;
+    if (clipIsNextTake && nowRecording && !m_candidate.empty()) m_name = m_candidate;
     if (nowRecording && !m_candidate.empty() && m_candidateSince >= m_recStart - margin && t - m_candidateSince >= m_settle)
         m_name = m_candidate;
 
