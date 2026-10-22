@@ -1,0 +1,21 @@
+Device: DeckLink 8K Pro (4)
+  VANC requires 10-bit YUV frames          no
+  HANC capture supported                   yes
+  HANC needs DID/SDID filters              yes
+  HANC filter 1 = 52/4D                    set
+Capturing for 3600 s... (watching for changes)
+
+  NO SIGNAL (frame flagged)
+  signal back
+   0.00s  00:48:54:10  STATE arri=0 klv_complete=1 (0 klv, 0 packets) lens_data=0 -> viewer would NOT send (only-with-lens)
+   0.00s  00:48:54:10  REC FLAG RECORDING
+   0.01s  00:48:54:11  FIELD camera                 n/a -> RED
+   0.01s  00:48:54:11  FIELD camera_make            n/a -> RED
+   0.01s  00:48:54:11  FIELD camera_index           n/a -> R
+   0.01s  00:48:54:11  FIELD clip                   n/a -> R003_C012_1022WU
+   0.01s  00:48:54:11  FIELD reel                   n/a -> R003
+   0.32s  00:48:54:19  FIELD recording_name         n/a -> R003_C012_1022WU
+   0.32s  00:48:54:19  RECORDING NAME -> 'R003_C012_1022WU'
+  22.24s  00:49:16:17  FIELD recording              1 -> 0
+  22.24s  00:49:16:17  REC FLAG STOPPED
+  24.04s  00:49:18:12  FIELD clip                   R003_C012_1022WU -> R003_C013_1022FA
