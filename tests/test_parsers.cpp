@@ -273,7 +273,7 @@ int main() {
             CHECK(r.str(Field::CameraFirmware) == "Version3.00" && r.str(Field::Reel) == "A003");
             CHECK(r.get(Field::Reel).source == ValueSource::Derived);
             CHECK(r.str(Field::LookName) == "07_TY_3 STRIP_JP.cube" && r.has(Field::CaptureGamma));
-            CHECK(!r.has(Field::NdDensity) && !r.get(Field::NdDensity).note.empty());   // 8103 seen, meaning unknown
+            CHECK(std::fabs(r.num(Field::NdDensity) - 0.9) < 1e-9);   // 8103 = 8 (3 stops), verified stepping clear..2.4
             CHECK(r.str(Field::Camera) == "Sony VENICE 2 (MPC-3626)" && r.str(Field::Lens) == "Z50128435");
         }
 

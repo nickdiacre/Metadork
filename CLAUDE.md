@@ -139,6 +139,8 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    HANC 52/4D (DeckLink 8K Pro, 2026-10-22, `captures/venice2_V2-1-hanc_2026-10-22_raw.txt`): VENICE 2 sends the same
    11-byte record flag as ARRI (01 00 0F 01 00 00 01 00 00 20 0x, last byte bit 1 = REC), so the app uses it first. It
    leads the UMID by ~0.6-0.8 s at REC on and off (button press vs file). Not sent before the first REC press here.
+   ND (2026-10-22, `captures/venice2_V2-2-nd_2026-10-22_raw.txt`): 02/8103 = attenuation factor 2^stops (1 clear, 2 = 0.3
+   ... 256 = 2.4); nd = 0.3 x log2(value). BURANO sends 6 (variable ND ~0.78), unverified.
    BURANO sends no record flag in RDD 18 (verified over 4 REC cycles,
    `captures/burano_rec_toggle_2026-10-06.txt`). With the camera in rec-run TC, RP188 TC runs only while recording;
    The 44/04 clip name is the clip being recorded while rolling, and the NEXT clip number once stopped; its 2-char

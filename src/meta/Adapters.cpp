@@ -159,7 +159,8 @@ void fillSony(const FrameMetadata& md, MetaRecord& r) {
         const double n = double(beValue(i->value.data(), 4)), d = double(beValue(i->value.data() + 4, 4));
         if (n > 0 && d > 0) r.setNum(Field::ExposureTime, n / d, C::Verified, sonyTag(0x02, 0x8109));
     }
-    if (f.find(K::Camera, 0x8103)) r.note(Field::NdDensity, "ND wheel value (8103) seen, meaning not yet confirmed");
+    // 8103 = ND attenuation factor (1 clear, 2 = ND 0.3 ... 256 = ND 2.4), VENICE 2 2026-10-22
+    if (camU(0x8103, u) && u >= 1) r.setNum(Field::NdDensity, std::round(std::log2(double(u)) * 0.3 * 100) / 100, C::Verified, sonyTag(0x02, 0x8103));
     if (const Rdd18Item* i = f.find(K::Camera, 0x8106); i && i->value.size() == 8) {
         const double n = double(beValue(i->value.data(), 4)), d = double(beValue(i->value.data() + 4, 4));
         if (n > 0 && d > 0) r.setNum(Field::CaptureFps, n / d, C::Verified, sonyTag(0x02, 0x8106));
