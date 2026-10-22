@@ -182,7 +182,8 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    comes as the SDI recording trigger in the timecode: DeckLink flag bmdTimecodeRecordingTriggered (0x10) and user-bit
    0x08 of the low byte, set exactly during both takes. `MetadataProcessor` uses it once seen (Unknown until then).
    User bits alternate between two values each frame (e.g. 16AC0034 / 63010074) and change between takes: meaning
-   unknown. No clip name, so no recording_name for RED yet. Check the RED SDI menu for a metadata option.
+   unknown. No clip name, so no recording_name for RED yet. No SDI metadata option found in the Raptor menus. Other route:
+   RED's network camera control protocol (RCP2), not investigated.
 3. (resolved) ARRI little-endian confirmed on a Mini LF.
 4. Hardware so far: UltraStudio Express Recorder 3G on macOS (SDK 16.0) captures VANC fine; Sony BURANO decoded.
    ARRI is still untested on hardware. Builds against SDK 12 (Linux) and SDK 16 (macOS).
