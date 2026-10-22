@@ -146,6 +146,10 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    Shutter (`captures/venice2_V2-5-shutter_2026-10-22_raw.txt`, 25 fps): 8108 = angle x60 and 8109 = exposure time (rational)
    are both filled and consistent in angle mode (180/173/144/90 -> 1/50..1/100) and speed mode (1/25..1/100 -> 360..90 deg);
    no tag says which mode is selected.
+   Imager modes (`captures/venice2_V2-7-imager_2026-10-22_raw.txt`): 8104/8105 (um) follow the mode: 35.925x23.950 (3:2 FF),
+   35.961x19.436, 35.925x15.064 (2.39), 24.330x12.830 (S35 17:9-ish), 22.810x12.830 (S35 16:9). Lens 8004 (35mm-equiv
+   focal) scales with the sensor diagonal (99 -> 105 -> 110 -> 156 mm with a 99 mm lens, 8005 unchanged), so it is a
+   diagonal crop-factor equivalent. E10F (SDI image area) changes with it. No recording-resolution tag found.
    BURANO sends no record flag in RDD 18 (verified over 4 REC cycles,
    `captures/burano_rec_toggle_2026-10-06.txt`). With the camera in rec-run TC, RP188 TC runs only while recording;
    The 44/04 clip name is the clip being recorded while rolling, and the NEXT clip number once stopped; its 2-char
