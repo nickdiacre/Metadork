@@ -619,7 +619,17 @@ void drawOpenTrackIO(OutputsUi& ui, const OutputManager::Status& st, const Outpu
 }
 
 // Returns true when Apply was pressed (the caller saves settings).
-bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* logPath, size_t logPathSize, bool& logRaw) {
+// Values the camera doesn't send over SDI and the user has to supply. Each item shows only when the current camera
+// needs it (or a manual value is in force).
+struct ManualInputs {
+    CameraKind kind = CameraKind::None;
+    bool cameraHasSensor = false;   // the camera sends its own sensor size
+    char* redPosition = nullptr;    // 2-char buffer
+    bool redPositionChanged = false;
+};
+
+bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* logPath, size_t logPathSize, bool& logRaw,
+                ManualInputs& manual) {
     bool applied = false;
     const OutputManager::Status st = out.status();
     auto& p = ui.pending;
@@ -639,32 +649,46 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
         ImGui::TextColored(kRed, "%llu send errors, last: %s", (unsigned long long)st.sendErrors, st.lastSendError.c_str());
     }
 
-    if (ImGui::CollapsingHeader("Sensor size")) {
-        const CameraSample& last = st.last;
-        ImGui::TextDisabled("Camera / derived: %s",
-                            last.sensorSource.empty() ? "none" : (last.hasSensor ? fmt("%.2f", last.sensorWidthMm) + " x " +
-                                fmt("%.2f mm  ", last.sensorHeightMm) + "(" + last.sensorSource + ")" : last.sensorSource).c_str());
-        int mode = int(p.sensorOverride);
-        if (ImGui::Combo("Manual size", &mode, "Off\0Use when the camera has none\0Always use\0")) {
-            p.sensorOverride = SensorOverride(mode);
-            ui.dirty = true;
+    const bool needRed = manual.kind == CameraKind::Red;
+    const bool needSensor = (manual.kind != CameraKind::None && !manual.cameraHasSensor) || p.sensorOverride != SensorOverride::Off;
+    if ((needRed || needSensor) && ImGui::CollapsingHeader("Values the camera doesn't send", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (needRed) {
+            ImGui::SeparatorText("RED clip name");
+            ImGui::SetNextItemWidth(ImGui::GetFontSize() * 2.0f);
+            if (ImGui::InputText("Camera position letter", manual.redPosition, 2,
+                                 ImGuiInputTextFlags_CharsUppercase | ImGuiInputTextFlags_CharsNoBlank))
+                manual.redPositionChanged = true;
+            ImGui::TextDisabled("RED clip names use the Camera Position letter (Slate menu), e.g. R003_A012. The camera "
+                                "doesn't send it over SDI, so set it to match the camera.");
         }
-        if (ImGui::BeginCombo("Preset", "Choose a recording mode...")) {
-            for (const auto& m : sensorModes()) {
-                const std::string label = std::string(m.camera) + "  " + m.name + "  " + fmt("%.2f", m.widthMm()) + " x " +
-                                          fmt("%.2f mm", m.heightMm());
-                if (ImGui::Selectable(label.c_str())) {
-                    p.manualSensorWidthMm = m.widthMm();
-                    p.manualSensorHeightMm = m.heightMm();
-                    ui.dirty = true;
-                }
+        if (needSensor) {
+            ImGui::SeparatorText("Sensor size");
+            const CameraSample& last = st.last;
+            ImGui::TextDisabled("Camera / derived: %s",
+                                last.sensorSource.empty() ? "none" : (last.hasSensor ? fmt("%.2f", last.sensorWidthMm) + " x " +
+                                    fmt("%.2f mm  ", last.sensorHeightMm) + "(" + last.sensorSource + ")" : last.sensorSource).c_str());
+            int mode = int(p.sensorOverride);
+            if (ImGui::Combo("Manual size", &mode, "Off\0Use when the camera has none\0Always use\0")) {
+                p.sensorOverride = SensorOverride(mode);
+                ui.dirty = true;
             }
-            ImGui::EndCombo();
+            if (ImGui::BeginCombo("Preset", "Choose a recording mode...")) {
+                for (const auto& m : sensorModes()) {
+                    const std::string label = std::string(m.camera) + "  " + m.name + "  " + fmt("%.2f", m.widthMm()) + " x " +
+                                              fmt("%.2f mm", m.heightMm());
+                    if (ImGui::Selectable(label.c_str())) {
+                        p.manualSensorWidthMm = m.widthMm();
+                        p.manualSensorHeightMm = m.heightMm();
+                        ui.dirty = true;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            ui.dirty |= ImGui::InputDouble("Width (mm)", &p.manualSensorWidthMm, 0, 0, "%.3f");
+            ui.dirty |= ImGui::InputDouble("Height (mm)", &p.manualSensorHeightMm, 0, 0, "%.3f");
+            ImGui::TextDisabled("This camera doesn't send its sensor size (ARRI never does). Pick the recording mode's "
+                                "preset or type the active area.");
         }
-        ui.dirty |= ImGui::InputDouble("Width (mm)", &p.manualSensorWidthMm, 0, 0, "%.3f");
-        ui.dirty |= ImGui::InputDouble("Height (mm)", &p.manualSensorHeightMm, 0, 0, "%.3f");
-        ImGui::TextDisabled("ARRI doesn't send sensor size: it is derived from the camera model and the recording area's "
-                            "shape where that is unambiguous. Set a manual size for other modes and cameras.");
     }
 
     if (ImGui::BeginTabBar("outputs")) {
@@ -994,25 +1018,24 @@ int main() {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Used when the camera sends no record flag (Sony), and only after timecode has been\n"
                                   "seen stopped (proving Rec Run TC). In Free Run it is never used.");
-            ImGui::SetNextItemWidth(ImGui::GetFontSize() * 2.0f);
-            if (ImGui::InputText("RED camera position letter", redPosition, sizeof redPosition,
-                                 ImGuiInputTextFlags_CharsUppercase | ImGuiInputTextFlags_CharsNoBlank)) {
-                if (session) session->setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
-                save();
-            }
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("RED clip names use the Camera Position letter (Slate menu), e.g. R003_A012.\n"
-                                  "The camera doesn't send it over SDI, so set it to match the camera.");
         }
 
         ImGui::Separator();
         CameraSample cs = sampleFrom(md);
+        ManualInputs manual;
+        manual.kind = cs.kind;
+        manual.cameraHasSensor = cs.hasSensor;
+        manual.redPosition = redPosition;
         applySensorOverride(cs, outputs.settings());
         if (ImGui::BeginTabBar("tabs")) {
             if (ImGui::BeginTabItem("Summary")) { drawSummary(md, hasFrame, cs); ImGui::EndTabItem(); }
             if (ImGui::BeginTabItem("Input")) { drawInput(md, hasFrame, cs, rddHist, bmdHist); ImGui::EndTabItem(); }
             if (ImGui::BeginTabItem("Output")) {
-                if (drawOutput(outputs, outputsUi, logger, logPath, sizeof logPath, logRaw)) save();
+                if (drawOutput(outputs, outputsUi, logger, logPath, sizeof logPath, logRaw, manual)) save();
+                if (manual.redPositionChanged) {
+                    if (session) session->setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
+                    save();
+                }
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Raw")) { drawRaw(md, stats, selectedPacket); ImGui::EndTabItem(); }

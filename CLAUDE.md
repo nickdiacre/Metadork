@@ -69,7 +69,7 @@ and Blackmagic URSA.
   change with TC, `--raw` every packet of every frame as hex): headless check of ANC packets, every TC source,
   and raw VANC lines (zero vs black vs ADF), with optional payload hex dump.
 - `src/main.cpp`: GLFW + Dear ImGui UI. Tabs: Summary (catalogue), Input (decoded fields of the detected camera,
-  TC/record state), Output (FreeD | OSC | OpenTrackIO | Log file sub-tabs, one Apply), Raw (ANC packets, hex, RDD 18
+  TC/record state), Output ("Values the camera doesn't send" section shown only when needed: RED position letter, sensor size; then FreeD | OSC | OpenTrackIO | Log file sub-tabs, one Apply), Raw (ANC packets, hex, RDD 18
   stream). Preview frames are converted to BGRA with IDeckLinkVideoConversion
   and drawn as a GL texture. The SDK 12 GL preview helper was avoided because it is fixed-function and
   incompatible with the GL 3.2 core context macOS requires.
