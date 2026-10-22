@@ -73,7 +73,13 @@ bool parseArriBlock(const uint8_t* value, size_t size, ArriMetadata& m) {
         std::memcpy(&f, &bits, 4);
         m.pixelAspect = (std::isfinite(f) && f >= 0.5f && f <= 4.0f) ? double(f) : 0.0;
     }
-    m.tint = r.i32(0x0060);
+    {
+        // Tint is an IEEE float, not an integer (verified on a Mini LF: -3.0, -2.4, -2.0 while adjusting)
+        const uint32_t bits = r.u32(0x0060);
+        float f;
+        std::memcpy(&f, &bits, 4);
+        m.tint = std::isfinite(f) ? double(f) : 0.0;
+    }
     m.exposureIndex = r.u32(0x0074);
     m.lookFile = r.str(0x00CC, 32);
 

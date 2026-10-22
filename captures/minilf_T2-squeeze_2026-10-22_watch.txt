@@ -1,0 +1,81 @@
+Device: DeckLink 8K Pro (4)
+  VANC requires 10-bit YUV frames          no
+  HANC capture supported                   yes
+  HANC needs DID/SDID filters              yes
+  HANC filter 1 = 52/4D                    set
+Capturing for 45 s... (watching for changes)
+
+  NO SIGNAL (frame flagged)
+  signal back
+   0.00s  23:57:15:19  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=1 -> viewer SENDS
+   0.00s  23:57:15:19  ARRI CLIP '' -> 'A000C051_130101_APY6'
+   0.00s  23:57:15:19  REC FLAG STOPPED
+   6.68s  23:57:22:12  FIELD squeeze                1.000 x -> 1.250 x
+  21.36s  23:57:37:04  FIELD squeeze                1.250 x -> 1.300 x
+  24.16s  23:57:39:24  FIELD squeeze                1.300 x -> 1.500 x
+  31.68s  23:57:47:12  FIELD squeeze                1.500 x -> 1.650 x
+  43.16s  23:57:58:24  FIELD squeeze                1.650 x -> 1.800 x
+Signal
+  Detected mode                            2160p25 (YUV 4:2:2)
+  Frames                                   1123 (9 flagged no-signal)
+  Video input locked                       yes
+  Ancillary input locked                   yes
+
+ANC packets via IDeckLinkVideoFrameAncillaryPackets (what the viewer reads)
+  frames with >=1 packet: 1114
+  DID 44 SDID 04  x20052  VANC lines: 9 10 11
+  DID 52 SDID 4D  x1114   HANC lines: 9
+
+Timecode, each source queried separately
+  RP188 VITC1          1114 frames, last 23:58:00:07
+  RP188 VITC2          -
+  RP188 LTC            1114 frames, last 23:58:00:07
+  RP188 HFR            -
+  RP188 Any            1114 frames, last 23:58:00:07
+  VITC (SD)            -
+  VITC field 2 (SD)    -
+
+Raw VANC lines via IDeckLinkVideoFrameAncillary
+  zero = buffer all zeros (driver likely not capturing VANC); black = real empty blanking
+  line  captured   zero  black  with-ADF  DID/SDID found
+     1      1114      0   1114         0 
+     2      1114      0   1114         0 
+     3      1114      0   1114         0 
+     4      1114      0   1114         0 
+     5      1114      0   1114         0 
+     6      1114      0   1114         0 
+     7      1114      0   1114         0 
+     8      1114      0   1114         0 
+     9      1114      0      0         0 
+    10      1114      0      0         0 
+    11      1114      0      0         0 
+    12      1114      0   1114         0 
+    13      1114      0   1114         0 
+    14      1114      0   1114         0 
+    15      1114      0   1114         0 
+    16      1114      0   1114         0 
+    17      1114      0   1114         0 
+    18      1114      0   1114         0 
+    19      1114      0   1114         0 
+    20      1114      0   1114         0 
+    21      1114      0   1114         0 
+    22      1114      0   1114         0 
+    23      1114      0   1114         0 
+    24      1114      0   1114         0 
+    25      1114      0   1114         0 
+    26      1114      0   1114         0 
+    27      1114      0   1114         0 
+    28      1114      0   1114         0 
+    29      1114      0   1114         0 
+    30      1114      0   1114         0 
+    31      1114      0   1114         0 
+    32      1114      0   1114         0 
+    33      1114      0   1114         0 
+    34      1114      0   1114         0 
+    35      1114      0   1114         0 
+    36      1114      0   1114         0 
+    37      1114      0   1114         0 
+    38      1114      0   1114         0 
+    39      1114      0   1114         0 
+    40      1114      0   1114         0 
+    41      1114      0   1114         0 

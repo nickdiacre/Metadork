@@ -1,0 +1,33 @@
+Device: DeckLink 8K Pro (4)
+  VANC requires 10-bit YUV frames          no
+  HANC capture supported                   yes
+  HANC needs DID/SDID filters              yes
+  HANC filter 1 = 52/4D                    set
+Capturing for 3600 s... (watching for changes)
+
+  NO SIGNAL (frame flagged)
+  signal back
+   0.00s  23:58:53:21  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=1 -> viewer SENDS
+   0.00s  23:58:53:21  ARRI CLIP '' -> 'A000C051_130101_APY6'
+   0.00s  23:58:53:21  REC FLAG STOPPED
+   9.48s  23:59:03:09  FIELD nd                     0.000 -> 0.600
+  16.12s  23:59:10:00  FIELD nd                     0.600 -> 1.200
+  21.72s  23:59:15:15  FIELD nd                     1.200 -> 1.800
+  29.28s  23:59:23:04  FIELD nd                     1.800 -> 1.200
+  37.68s  23:59:31:14  FIELD nd                     1.200 -> 0.000
+  93.40s  00:00:27:07  FIELD roll                   0.200 deg -> 0.300 deg
+  93.72s  00:00:27:15  FIELD roll                   0.300 deg -> 0.100 deg
+ 105.48s  00:00:39:09  FIELD roll                   0.100 deg -> 0.300 deg
+ 110.44s  00:00:44:08  FIELD white_balance          6000 K -> 6200 K
+ 110.44s  00:00:44:08  FIELD tint                   0.000 -> -1069547520.0
+ 110.56s  00:00:44:11  FIELD tint                   -1069547520.0 -> -1072064102.0
+ 110.64s  00:00:44:13  FIELD tint                   -1072064102.0 -> -1073741824.0
+ 111.16s  00:00:45:01  FIELD tint                   -1073741824.0 -> -1069547520.0
+ 111.28s  00:00:45:04  FIELD white_balance          6200 K -> 6000 K
+ 111.28s  00:00:45:04  FIELD tint                   -1069547520.0 -> 0.000
+ 111.68s  00:00:45:14  FIELD white_balance          6000 K -> 6200 K
+ 111.68s  00:00:45:14  FIELD tint                   0.000 -> -1069547520.0
+ 112.20s  00:00:46:02  FIELD white_balance          6200 K -> 6000 K
+ 112.20s  00:00:46:02  FIELD tint                   -1069547520.0 -> 0.000
+ 115.72s  00:00:49:15  FIELD tint                   0.000 -> -1069547520.0
+ 115.80s  00:00:49:17  FIELD tint                   -1069547520.0 -> 0.000

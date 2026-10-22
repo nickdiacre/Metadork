@@ -374,6 +374,14 @@ int main() {
             CHECK(r.num(Field::ProjectFps) == 25.0 && r.get(Field::ProjectFps).origin == "arri.0x1A4");
             CHECK(std::fabs(r.num(Field::ExposureTime) - 0.02) < 1e-12 && r.get(Field::ExposureTime).confidence == Confidence::Inferred);
             CHECK(r.has(Field::Tint) && r.num(Field::Tint) == 0 && r.str(Field::LookName) == "ARRI 709");
+            {   // tint is a float: 0xC0400000 = -3.0 (seen on the Mini LF while adjusting tint)
+                std::vector<uint8_t> blk2(4096, 0);
+                const uint8_t magic[] = {'A', 'R', 'R', 'I', 0x78, 0x56, 0x34, 0x12};
+                std::memcpy(blk2.data(), magic, sizeof magic);
+                put32(blk2, 0x0060, 0xC0400000u);
+                ArriMetadata am;
+                CHECK(parseArriBlock(blk2.data(), blk2.size(), am) && std::fabs(am.tint + 3.0) < 1e-9);
+            }
             CHECK(r.num(Field::RecordingWidth) == 4448 && r.num(Field::RecordingHeight) == 3096 &&
                   r.get(Field::RecordingWidth).source == ValueSource::Derived);
             CHECK(r.str(Field::CameraTimecode) == "00:03:29:17" && r.str(Field::Reel) == "A000APY6");

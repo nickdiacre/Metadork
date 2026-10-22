@@ -323,6 +323,19 @@ private:
                 std::printf("%s  FRAME GAP %.2f s\n", when.c_str(), t - m_lastFrameT);
             m_lastFrameT = t;
         }
+        // Every master-record field that changed (except ones that move every frame)
+        {
+            const MetaRecord rec = sampleFrom(md).record;
+            for (const auto& f : allFields()) {
+                if (f.field == Field::Timecode || f.field == Field::CameraTimecode) continue;
+                const std::string v = rec.display(f.field);
+                auto& prev = m_fields[size_t(f.field)];
+                if (prev != v) {
+                    if (m_frames > 0) std::printf("%s  FIELD %-22s %s -> %s\n", when.c_str(), f.id, prev.c_str(), v.c_str());
+                    prev = v;
+                }
+            }
+        }
         if (md.recordingName != m_recName) {
             std::printf("%s  RECORDING NAME -> '%s'\n", when.c_str(), md.recordingName.c_str());
             m_recName = md.recordingName;
@@ -364,6 +377,7 @@ private:
     std::map<uint32_t, std::pair<std::vector<uint8_t>, std::string>> m_prev;
     std::string m_clip;
     std::string m_recName, m_arriClip;
+    std::vector<std::string> m_fields = std::vector<std::string>(kFieldCount);
     bool m_lens = false, m_hasArri = false, m_arriComplete = true, m_noSignal = false;
     double m_lastFrameT = -1;
     RecState m_rec = RecState::Unknown;

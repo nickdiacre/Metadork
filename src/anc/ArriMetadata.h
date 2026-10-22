@@ -19,7 +19,7 @@ struct ArriMetadata {
     // Image / exposure
     uint32_t exposureIndex = 0;   // ASA
     uint32_t whiteBalanceK = 0;
-    int32_t tint = 0;
+    double tint = 0;              // IEEE float at 0x060 (Mini LF: 0xC0400000 = -3.0)
     double shutterAngle = 0;      // degrees
     double sensorFps = 0;
     uint32_t exposureTimeRaw = 0; // microseconds (Mini LF: 20000 at 180 deg / 25 fps)

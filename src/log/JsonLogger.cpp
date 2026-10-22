@@ -87,7 +87,7 @@ std::string JsonLogger::toJson(const FrameMetadata& md, bool raw) {
         std::snprintf(b, sizeof b, ",\"entrance_pupil_um\":%d", a.entrancePupilUm); j += b;
         std::snprintf(b, sizeof b, ",\"efl_um\":%d", a.effectiveFocalLengthUm); j += b;
         j += ",\"lens\":\"" + esc(a.lensModel) + "\"";
-        std::snprintf(b, sizeof b, ",\"ei\":%u,\"wb\":%u,\"tint\":%d", a.exposureIndex, a.whiteBalanceK, a.tint); j += b;
+        std::snprintf(b, sizeof b, ",\"ei\":%u,\"wb\":%u,\"tint\":%.2f", a.exposureIndex, a.whiteBalanceK, a.tint); j += b;
         j += ",\"shutter_deg\":" + num(a.shutterAngle);
         j += ",\"sensor_fps\":" + num(a.sensorFps);
         j += ",\"nd\":" + num(a.ndDensity);

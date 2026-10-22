@@ -64,15 +64,15 @@ void fillArri(const FrameMetadata& md, MetaRecord& r) {
     if (a.exposureTimeRaw > 0 && a.exposureTimeRaw != 0xFFFFFFFFu)  // microseconds: 20000 at 180 deg / 25 fps
         r.setNum(Field::ExposureTime, a.exposureTimeRaw / 1e6, C::Inferred, hex(0x18C));
     if (a.whiteBalanceK) r.setNum(Field::WhiteBalance, a.whiteBalanceK, C::Verified, hex(0x05C));
-    r.setNum(Field::Tint, a.tint, C::Documented, hex(0x060));
-    if (a.ndType != 0xFFFF) r.setNum(Field::NdDensity, a.ndDensity, C::Documented, hex(0x38A));
+    r.setNum(Field::Tint, a.tint, C::Verified, hex(0x060));
+    if (a.ndType != 0xFFFF) r.setNum(Field::NdDensity, a.ndDensity, C::Verified, hex(0x38A));  // Mini LF 0 / 0.6 / 1.2 / 1.8
 
     if (a.sensorFps > 0) r.setNum(Field::CaptureFps, a.sensorFps, C::Verified, hex(0x1A0));
     // White paper: code 0..4 (23.976 / 24 / 25 / 29.97 / 30); Mini LF SUP 7 sends fps x 1000.
     static const double codes[] = {24000.0 / 1001, 24, 25, 30000.0 / 1001, 30};
     if (a.projectFpsCode >= 1000 && a.projectFpsCode < 1000000) r.setNum(Field::ProjectFps, a.projectFpsCode / 1000.0, C::Verified, hex(0x1A4));
     else if (a.projectFpsCode < 5) r.setNum(Field::ProjectFps, codes[a.projectFpsCode], C::Documented, hex(0x1A4));
-    if (a.pixelAspect > 0) r.setNum(Field::Squeeze, a.pixelAspect, C::Documented, hex(0x0C4));
+    if (a.pixelAspect > 0) r.setNum(Field::Squeeze, a.pixelAspect, C::Verified, hex(0x0C4));  // Mini LF 1.0 .. 2.0
     r.setStr(Field::LookName, a.lookFile, C::Verified, hex(0x0CC));
 
     // ARRI sends no sensor size: derive it from the camera model and the recording area's shape.
