@@ -17,6 +17,7 @@ add_library(sdimeta_core STATIC
     src/anc/BmdCameraControl.cpp
     src/anc/Rdd18.cpp
     src/anc/MetadataProcessor.cpp
+    src/anc/TakeTracker.cpp
     src/log/JsonLogger.cpp
     src/meta/MetaRecord.cpp
     src/meta/Adapters.cpp

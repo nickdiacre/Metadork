@@ -42,6 +42,7 @@
     {"id": "roll", "group": "Orientation", "label": "Roll (+ clockwise from behind)", "unit": "deg", "type": "float", "livegrade": "Camera Roll", "opentrackio": "transforms[0].rotation.roll", "freed": "roll", "osc": "<prefix>/roll"},
     {"id": "timecode", "group": "Take / timing", "label": "Timecode", "unit": "", "type": "string", "livegrade": "Timecode", "opentrackio": "timing.timecode", "freed": "", "osc": "<prefix>/timecode"},
     {"id": "timecode_camera", "group": "Take / timing", "label": "Camera timecode", "unit": "", "type": "string", "livegrade": "", "opentrackio": "", "freed": "", "osc": "<prefix>/timecode_camera"},
+    {"id": "recording_name", "group": "Take / timing", "label": "Recording name", "unit": "", "type": "string", "livegrade": "", "opentrackio": "", "freed": "", "osc": "<prefix>/recording_name"},
     {"id": "recording", "group": "Take / timing", "label": "Recording (1/0)", "unit": "", "type": "int", "livegrade": "", "opentrackio": "tracker.recording", "freed": "", "osc": "<prefix>/recording"},
     {"id": "clip", "group": "Take / timing", "label": "Clip", "unit": "", "type": "string", "livegrade": "Clip Name", "opentrackio": "tracker.slate", "freed": "", "osc": "<prefix>/clip"},
     {"id": "reel", "group": "Take / timing", "label": "Reel", "unit": "", "type": "string", "livegrade": "", "opentrackio": "", "freed": "", "osc": "<prefix>/reel"},

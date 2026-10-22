@@ -265,6 +265,8 @@ MetaRecord buildRecord(const FrameMetadata& md) {
     if (md.rec != RecState::Unknown)
         r.setNum(Field::Recording, md.rec == RecState::Recording ? 1 : 0, Confidence::Verified, md.recSource);
     if (!r.has(Field::Clip)) r.setStr(Field::Clip, md.sonyClip, Confidence::Verified, "sony.4404.clip");
+    r.setStr(Field::RecordingName, md.recordingName, Confidence::Inferred, "derived: clip name while recording",
+             ValueSource::Derived);
     // Composite display fields kept for existing OSC receivers
     if (r.has(Field::CameraMake))
         r.setStr(Field::Camera, r.str(Field::CameraMake) + (r.has(Field::CameraModel) ? " " + r.str(Field::CameraModel) : ""),

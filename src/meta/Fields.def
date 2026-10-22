@@ -50,6 +50,9 @@ F(Roll,              "roll",              Orientation, "Roll (+ clockwise from b
 // ---- take / timing
 F(Timecode,          "timecode",          Take,     "Timecode",                   "",     String, "Timecode",         "timing.timecode", "")
 F(CameraTimecode,    "timecode_camera",   Take,     "Camera timecode",            "",     String, "",                 "", "")
+// Name of the take being / last recorded, held after stop: for receivers that name a recording when it stops (Stage
+// Precision). Sent before "recording" so the final name arrives before record = 0. See anc/TakeTracker.h.
+F(RecordingName,     "recording_name",    Take,     "Recording name",             "",     String, "",                 "", "")
 F(Recording,         "recording",         Take,     "Recording (1/0)",            "",     Int,    "",                 "tracker.recording", "")
 F(Clip,              "clip",              Take,     "Clip",                       "",     String, "Clip Name",        "tracker.slate", "")
 F(Reel,              "reel",              Take,     "Reel",                       "",     String, "",                 "", "")

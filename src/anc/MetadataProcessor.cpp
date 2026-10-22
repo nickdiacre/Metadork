@@ -93,5 +93,8 @@ FrameMetadata MetadataProcessor::process(std::vector<AncPacket>&& packets, const
     }
     md.rdd18 = parseRdd18(md.packets);
     md.hasRdd18 = md.rdd18.packets > 0;
+
+    const std::string clip = md.hasArri ? md.arri.clip() : md.sonyClip;
+    md.recordingName = m_take.update(md.rec == RecState::Recording ? 1 : md.rec == RecState::Stopped ? 0 : -1, clip, hostTime);
     return md;
 }

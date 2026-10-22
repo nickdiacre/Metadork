@@ -4,6 +4,7 @@
 #include "anc/BmdCameraControl.h"
 #include "anc/Rdd18.h"
 #include "anc/Rp214.h"
+#include "anc/TakeTracker.h"
 #include <atomic>
 #include <string>
 #include <vector>
@@ -53,6 +54,8 @@ struct FrameMetadata {
     std::string sonyUmid;   // SMPTE UMID of the take being recorded (VENICE 2), hex; empty when stopped
 
     BmdFrame bmd;           // Blackmagic camera control (51/53) and tally (51/52)
+
+    std::string recordingName;  // take being / last recorded (TakeTracker), held after stop
 };
 
 // Stateless per-frame decode plus a little cross-frame state (frame count, TC advance).
@@ -78,4 +81,5 @@ private:
     std::string m_lastClip;
     RecState m_clipRec = RecState::Unknown;
     std::atomic<bool> m_recFromTc{true};
+    TakeTracker m_take;
 };

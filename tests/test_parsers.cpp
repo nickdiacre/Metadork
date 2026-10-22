@@ -514,6 +514,57 @@ int main() {
         CHECK(clipFrame("A002C004_2610069I", 1.3).rec == RecState::Stopped);  // REC off: next clip number
     }
 
+    // Recording name for receivers that name a recording at stop (Stage Precision)
+    {
+        // ALEXA Mini LF (captures/minilf_rec_2026-10-21_raw.txt timings): last clip shown while stopped; ~0.2 s after
+        // REC start reel "A000" blips, then the counter steps to the new clip; nothing changes at stop.
+        TakeTracker t;
+        double s = 0;
+        auto run = [&](int rec, const char* clip, double until) {
+            std::string n;
+            for (; s < until; s += 0.04) n = t.update(rec, clip, s);
+            return n;
+        };
+        CHECK(run(0, "A001C040_130101_APY6", 10.0) == "");                // no take yet
+        CHECK(run(1, "A001C040_130101_APY6", 10.88) == "");               // rolling, name not stepped yet
+        CHECK(run(1, "A000C040_130101_APY6", 11.08) == "");               // 0.2 s blip is ignored
+        CHECK(run(1, "A001C041_130101_APY6", 21.3) == "A001C041_130101_APY6");
+        CHECK(run(0, "A001C041_130101_APY6", 32.0) == "A001C041_130101_APY6");   // held after stop
+        CHECK(run(1, "A001C041_130101_APY6", 32.16) == "A001C041_130101_APY6");  // next take: previous name until known
+        CHECK(run(1, "A001C042_130101_APY6", 43.3) == "A001C042_130101_APY6");
+
+        // VENICE 2 (captures/venice2_rec_raw_2026-10-21.txt): next clip with placeholder suffix while stopped, real
+        // suffix on the REC-start frame, next clip number on the REC-stop frame.
+        TakeTracker v;
+        s = 0;
+        auto runV = [&](int rec, const char* clip, double until) {
+            std::string n;
+            for (; s < until; s += 0.04) n = v.update(rec, clip, s);
+            return n;
+        };
+        runV(0, "A003C063_221006WC", 2.68);
+        CHECK(runV(1, "A003C063_2210061Q", 12.96) == "A003C063_2210061Q");
+        CHECK(v.update(0, "A003C064_2210061Q", 12.96) == "A003C063_2210061Q");  // the stop frame already shows C064
+        CHECK(runV(0, "A003C064_2210061Q", 23.56) == "A003C063_2210061Q");
+        CHECK(runV(1, "A003C064_221006GT", 33.12) == "A003C064_221006GT");
+        CHECK(v.update(0, "A003C065_221006GT", 33.12) == "A003C064_221006GT");
+
+        // A take shorter than the settle time still gets its name at stop
+        TakeTracker q;
+        q.update(0, "A001C050", 0.0);
+        q.update(1, "A001C050", 1.0);
+        q.update(1, "A001C051", 1.08);
+        CHECK(q.update(0, "A001C051", 1.2) == "A001C051");
+
+        // The registry sends recording_name just before recording
+        size_t iName = 0, iRec = 0;
+        for (size_t i = 0; i < allFields().size(); ++i) {
+            if (allFields()[i].field == Field::RecordingName) iName = i;
+            if (allFields()[i].field == Field::Recording) iRec = i;
+        }
+        CHECK(iName + 1 == iRec);
+    }
+
     // FreeD D1
     {
         CameraSample cs;

@@ -299,6 +299,14 @@ private:
             std::printf("%s  CLIP  '%s' -> '%s'\n", when.c_str(), m_clip.c_str(), md.sonyClip.c_str());
             m_clip = md.sonyClip;
         }
+        if (md.recordingName != m_recName) {
+            std::printf("%s  RECORDING NAME -> '%s'\n", when.c_str(), md.recordingName.c_str());
+            m_recName = md.recordingName;
+        }
+        if (md.hasArri && md.arri.clip() != m_arriClip) {
+            std::printf("%s  ARRI CLIP '%s' -> '%s'\n", when.c_str(), m_arriClip.c_str(), md.arri.clip().c_str());
+            m_arriClip = md.arri.clip();
+        }
         if (md.rec != RecState::Unknown && md.rec != m_rec) {
             std::printf("%s  REC FLAG %s\n", when.c_str(), recStateName(md.rec));
             m_rec = md.rec;
@@ -331,6 +339,7 @@ private:
     MetadataProcessor m_proc;
     std::map<uint32_t, std::pair<std::vector<uint8_t>, std::string>> m_prev;
     std::string m_clip;
+    std::string m_recName, m_arriClip;
     RecState m_rec = RecState::Unknown;
     bool m_tcRunning = false;
     uint64_t m_frames = 0;
