@@ -190,23 +190,23 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    The DeckLink also reports RS as bmdTimecodeRecordingTriggered (generic fallback in MetadataProcessor).
    No lens / ISO / shutter / WB over SDI; RED's network protocol (RCP2) would be the route for those (not investigated).
 3. (resolved) ARRI little-endian confirmed on a Mini LF.
-4. Hardware so far: UltraStudio Express Recorder 3G on macOS (SDK 16.0) captures VANC fine; Sony BURANO decoded.
-   ARRI is still untested on hardware. Builds against SDK 12 (Linux) and SDK 16 (macOS).
+4. Hardware so far: UltraStudio Express Recorder 3G on macOS (SDK 16.0) captures VANC (no HANC); DeckLink 8K Pro
+   (profile 4 sub-devices half duplex) captures VANC + HANC. Tested on hardware: BURANO, VENICE 2, ALEXA Mini LF,
+   URSA, RED V-RAPTOR 8K VV. Builds against SDK 12 (Linux) and SDK 16 (macOS); Windows build not yet checked.
 
 ## Next steps
-- Anamorphic desqueeze for every camera (parity with ARRI, which already decodes it from 0x0C4):
-  - Sony: DONE for VENICE 2 (see 2a). Check BURANO / VENICE 1 the same way, and check what E10F does if the SDI
-    output is set not to display desqueezed.
-  - Blackmagic URSA: record `sdimeta_probe --raw` while switching its desqueeze setting and diff the commands.
-  - ARRI: confirm an anamorphic value (e.g. 2.0x) arrives as the expected float.
-  - Consider a manual squeeze override in the Output tab for cameras that don't report it.
-- ARRI record state: test Rec Run TC on the Mini LF; test a HANC-capable DeckLink for the 52/4D flag. Test other
-  ARRI bodies (ALEXA 35 uses the new reel/clip fields).
-- Output tab sends FreeD, OSC and OpenTrackIO; test against Stage Precision and Unreal (FreeD Live Link source,
-  OpenTrackIO), and agree the FreeD zoom/focus count scaling with the receiver.
-- Consider a Live Link source for Unreal.
+- Lens data for non-smart (vintage) lenses: test ARRI Cable CAM (7p) - ENG (12p) from an RIA-1 / cforce into the VENICE
+  LENS port and see which RDD 18 tags move; test ARRI motors + lens file on an ARRI body; ask SP support which focus
+  systems (Preston, cmotion, Teradek RT, DCS LDT) SP reads directly; consider DCS LDT + Wooden Camera LPL mount.
+- Optional: when a field stops being available (e.g. after switching cameras) clear it in OSC receivers (SP keeps the
+  last value).
+- RED settings / lens data: RED's network control protocol (RCP2), not investigated.
+- Anamorphic: check BURANO / VENICE 1 (E10F), Blackmagic URSA (`--raw` while switching desqueeze), ARRI non-1.0 float.
+- ARRI: other bodies (ALEXA 35 uses the new reel/clip fields); Rec Run TC on devices without HANC.
+- Unreal tests (FreeD Live Link source, OpenTrackIO); agree FreeD zoom/focus count scaling with the receiver.
+- Consider a Live Link source for Unreal and a headless/CLI mode for use alongside SP.
 - Decode ZEISS eXtended Data (Sony 7F E201/E215) once the ZEISS / Cooke /i spec is obtained.
-- Consider a headless/CLI mode for use alongside SP.
+- Optional checks: VENICE 2 UMID vs the recorded file; Sony focus against tape marks.
 
 ## Build
 ```bash

@@ -25,6 +25,30 @@ which field moved with each action.
 
 ---
 
+## Results, 2026-10-22 (DeckLink 8K Pro, port 4)
+
+| Test | Result |
+|---|---|
+| ML-1 record flag | ✅ HANC 52/4D; SP takes named correctly |
+| ML-3 sensor size | ❌ not on SDI (Active Image doesn't identify the mode): manual size / presets |
+| ML-4 squeeze | ✅ 1.0-2.0 |
+| ML-5 ND, WB, tint, EI, shutter, exposure | ✅ (tint is a float) |
+| ML-6 fps | ✅ sensor fps 25 → 50; project fps separate |
+| ML-7 slate | ✅ scene / take; circle take not tested (couldn't find it on the camera) |
+| ML-8 tilt | ✅ + = up; phone ±20° read +24 / -18 (phone surface ~3° off the sensor axis) |
+| V2-1 HANC record flag | ✅ same 52/4D as ARRI, leads the UMID by ~0.7 s; absent before the first REC |
+| V2-2 ND | ✅ 8103 = 2^stops (1 clear ... 256 = 2.4) |
+| V2-3 EI | ✅ 810B = 8115 = EI; base ISO not sent |
+| V2-4 focus accuracy | skipped (production FIZ will come from the focus system) |
+| V2-5 shutter | ✅ angle and exposure time consistent in both modes |
+| V2-6 squeeze | ✅ 1.25-2.0; no separate SDI desqueeze display setting |
+| V2-7 imager modes | ✅ sensor size + crop-aware 35 mm equivalent follow the mode; no recording-resolution tag |
+| V2-8 UMID vs file | not done (UMIDs of A003C067 / C068 logged in CLAUDE.md captures) |
+| V2-9 look | ✅ look name; 3210/3219 describe the SDI picture (709 with look on); no CDL |
+| RED RD-0..RD-3 | ✅ no ANC metadata; clip name + RS flag in the ATC user bits (RED doc 910-0084); Camera Position letter not sent (viewer setting) |
+| SP orientation | roll inverted, tilt not (ARRI and Sony) |
+| SP naming | ✅ /camera/recording_name on Mini LF, VENICE 2 and RED |
+
 ## ALEXA Mini LF (`minilf`)
 
 | ID | Closes | Steps | Pass |
