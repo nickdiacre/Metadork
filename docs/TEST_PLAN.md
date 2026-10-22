@@ -29,7 +29,7 @@ which field moved with each action.
 
 | ID | Closes | Steps | Pass |
 |---|---|---|---|
-| ML-1 | **Record flag (HANC 52/4D)** | `tools/capture.sh minilf ML-1-rec 40 <port>`. REC on 10 s, off 10 s, on 10 s, off. | Probe lists `DID 52 SDID 4D ... HANC`; viewer Summary shows record source "ARRI SDI rec flag". |
+| ML-1 | **Record flag (HANC 52/4D)** | `tools/capture.sh minilf ML-1-rec 40 <port>`. REC on 10 s, off 10 s, on 10 s, off. | Probe lists `DID 52 SDID 4D ... HANC`; viewer Summary shows record source "SDI rec flag". |
 | ML-2 | **Focus / iris accuracy** (electronic lens, lens table cleared) | Supreme Prime. Focus to tape marks **from the sensor plane mark**: 1 m, 2 m, 5 m, infinity; at each, iris T1.5, T2.8, T5.6. 60 s capture. | Focus within the lens's mark accuracy; T-stops match the barrel. Note how infinity is reported. |
 | ML-3 | **Sensor size from recording mode** | Switch recording format: LF Open Gate → LF 16:9 UHD → LF 2.39:1 → any S35 / crop modes the camera offers. ~10 s each. 60 s. | Summary sensor size matches each mode, or says "not in table" (then note the mode name and its published size). |
 | ML-4 | **Anamorphic squeeze** | Set desqueeze 1.0 → 1.25 → 1.3 → 1.5 → 1.8 → 2.0. 45 s. | `squeeze` follows each value (0x0C4 float). |

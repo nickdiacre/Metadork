@@ -136,6 +136,9 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    `sonyRecordingFromClipPacket` uses it: a per-frame state, correct from the first frame. Replaying the capture gives
    exactly the 4 REC transitions. The UMID should match the recorded file's UMID (unverified); it is shown and logged.
    Timecode user bits / flags did not change with REC.
+   HANC 52/4D (DeckLink 8K Pro, 2026-10-22, `captures/venice2_V2-1-hanc_2026-10-22_raw.txt`): VENICE 2 sends the same
+   11-byte record flag as ARRI (01 00 0F 01 00 00 01 00 00 20 0x, last byte bit 1 = REC), so the app uses it first. It
+   leads the UMID by ~0.6-0.8 s at REC on and off (button press vs file). Not sent before the first REC press here.
    BURANO sends no record flag in RDD 18 (verified over 4 REC cycles,
    `captures/burano_rec_toggle_2026-10-06.txt`). With the camera in rec-run TC, RP188 TC runs only while recording;
    The 44/04 clip name is the clip being recorded while rolling, and the NEXT clip number once stopped; its 2-char

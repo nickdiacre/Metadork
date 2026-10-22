@@ -55,10 +55,10 @@ FrameMetadata MetadataProcessor::process(std::vector<AncPacket>&& packets, const
     }
 
     for (const auto& p : md.packets) {
-        // ARRI HANC record flag: DC=11, word 11 bit 1. Only visible if the card delivers HANC.
+        // HANC record flag (ARRI and Sony VENICE 2): DC=11, word 11 bit 1. Only visible if the card delivers HANC.
         if (p.did == 0x52 && p.sdid == 0x4D && p.data.size() >= 11) {
             md.rec = (p.data[10] & 0x02) ? RecState::Recording : RecState::Stopped;
-            md.recSource = "ARRI SDI rec flag (0x52/0x4D)";
+            md.recSource = "SDI rec flag (HANC 0x52/0x4D)";
         }
     }
     md.bmd = parseBmd(md.packets);
