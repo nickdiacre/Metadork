@@ -90,7 +90,7 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    (magic "ARRI", 0x12345678). Differences from the white paper: shutter 0x190 is 1/1000 deg (180000), project
    fps 0x1A4 is fps x1000; new reel/clip fields (0x6B0/0x6BB) are 0xFF, old ones (0x4F8/0x698) used. Tilt 0x45C /
    roll 0x460 = signed 16-bit in the low half (0xFFFFFFFF = n/a, pan always n/a), tenths of a degree: roll verified
-   with a phone inclinometer (20 deg clockwise from behind = 205; + = clockwise, same as Sony). No sensor physical size
+   with a phone inclinometer (20 deg clockwise from behind = 205; + = clockwise, same as Sony). Tilt checked 2026-10-22 (`captures/minilf_T8b-tilt-circle_2026-10-22_watch.txt`): phone +-20 deg read +24 / -18 (+ = up), consistent with a ~3 deg offset between the phone's resting surface and the camera's sensor axis. Scene 0x500 / take 0x510 verified (ASCII); circle take 0x4F4 untested. No sensor physical size
    on SDI (IDI fields describe the SDI output image), and the Active Image (IDI06, 0x2C/0x30) does NOT identify the recording
    mode: Open Gate gave 1721x1198 (its own shape) but LF 2.39:1 4.5K gave 3840x2160 (the SDI frame), 2026-10-22. So
    there's no auto-derivation: ARRI sensor size comes from the manual setting (Output tab: off / when missing /
