@@ -184,7 +184,7 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    clip, date, 2-char wildcard, camera position and the RS record flag. Verified: R003_C007_102263, C008_1022NE,
    C009_1022RG; RS set exactly during both takes. While stopped the clip fields show the NEXT clip (~1.5 s after REC off),
    like Sony. V-RAPTOR names clips <CamID><reel>_<Camera Position letter><clip> (R003_A012), not RED's documented
-   fixed "C"; the position letter is not in the user bits (changing it only regenerates the wildcard,
+   fixed "C" (confirmed: Camera Position B gave R003_B0xx); the position letter is not in the user bits (changing it only regenerates the wildcard,
    `captures/red_raptor_RD-3-position_2026-10-22_raw.txt`), so it is a setting (red_position, default A).
    The DeckLink also reports RS as bmdTimecodeRecordingTriggered (generic fallback in MetadataProcessor).
    No lens / ISO / shutter / WB over SDI; RED's network protocol (RCP2) would be the route for those (not investigated).
