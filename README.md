@@ -142,7 +142,8 @@ tests/         parser tests, incl. fixtures from real Mini LF, VENICE 2, BURANO 
 captures/      probe captures from real cameras (evidence for the decoders)
 ```
 
-`CLAUDE.md` holds the detailed reverse-engineering notes: field offsets, encodings, how each finding was verified,
+`docs/METADATA.md` lists every metadata field, which camera supplies it, what is output, and how it compares with
+Pomfort Livegrade. `CLAUDE.md` holds the detailed reverse-engineering notes: field offsets, encodings, how each finding was verified,
 and the open issues.
 
 ## Log format
