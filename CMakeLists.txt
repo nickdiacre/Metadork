@@ -18,6 +18,8 @@ add_library(sdimeta_core STATIC
     src/anc/Rdd18.cpp
     src/anc/MetadataProcessor.cpp
     src/log/JsonLogger.cpp
+    src/meta/MetaRecord.cpp
+    src/meta/Adapters.cpp
     src/out/CameraSample.cpp
     src/out/Protocols.cpp
     src/out/UdpSender.cpp
@@ -35,6 +37,10 @@ if(SDIMETA_BUILD_TESTS)
     target_link_libraries(sdimeta_tests PRIVATE sdimeta_core)
     add_test(NAME parsers COMMAND sdimeta_tests)
 endif()
+
+# Field registry + per-camera coverage report from captures (no SDK needed)
+add_executable(sdimeta_coverage src/tools/Coverage.cpp)
+target_link_libraries(sdimeta_coverage PRIVATE sdimeta_core)
 
 if(NOT SDIMETA_BUILD_APP)
     return()

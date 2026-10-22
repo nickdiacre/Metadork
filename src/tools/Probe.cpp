@@ -9,6 +9,7 @@
 //
 // Usage: sdimeta_probe [seconds=5] [device index=0] [--dump] [--watch]
 //   --dump   also print the hex payload of every ANC packet in the last frame that had any
+//   --hanc 524D,6060,...  HANC DID/SDID pairs to capture (up to 4; default 524D = ARRI record flag)
 //   --list   list every DeckLink device / port: sub-device, duplex, profiles, connectors, HANC support; then exit
 //   --raw    print every ANC packet of every frame as hex, with time and TC (for offline analysis)
 //   --watch  print every decoded metadata change (RDD 18 items, clip, TC running/stopped) as it happens,
@@ -24,6 +25,7 @@
 #include <map>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -41,6 +43,7 @@ struct LineStats {
 bool gDump = false;
 bool gWatch = false;
 bool gRaw = false;
+std::vector<uint16_t> gHanc = {0x524D};  // HANC DID/SDID filters (DeckLink allows 4)
 
 struct TcStats {
     uint64_t valid = 0;
@@ -463,6 +466,12 @@ int main(int argc, char** argv) {
         if (std::string(argv[i]) == "--dump") gDump = true;
         else if (std::string(argv[i]) == "--watch") gWatch = true;
         else if (std::string(argv[i]) == "--raw") gRaw = true;
+        else if (std::string(argv[i]) == "--hanc" && i + 1 < argc) {
+            gHanc.clear();
+            std::istringstream ids(argv[++i]);
+            for (std::string id; std::getline(ids, id, ',') && gHanc.size() < 4;)
+                if (!id.empty()) gHanc.push_back(uint16_t(std::stoul(id, nullptr, 16)));
+        }
         else if (std::string(argv[i]) == "--list") { dlp::initialise(); return listDevices(); }
         else pos.push_back(argv[i]);
     }
@@ -503,9 +512,15 @@ int main(int argc, char** argv) {
     IDeckLinkConfiguration* cfg = nullptr;
     if (dev->QueryInterface(IID_IDeckLinkConfiguration, (void**)&cfg) == S_OK && cfg) {
         cfg->SetInt(bmdDeckLinkConfigVideoInputConnection, bmdVideoConnectionSDI);
-        // HANC: the ARRI record start/stop flag (DID 0x52 / SDID 0x4D)
-        const HRESULT hr = cfg->SetInt(bmdDeckLinkConfigHANCInputFilter1, 0x524D);
-        std::printf("  %-40s %s\n", "HANC filter 1 = 52/4D (ARRI rec flag)", hr == S_OK ? "set" : "not accepted");
+        // HANC filters, e.g. the ARRI record start/stop flag (DID 0x52 / SDID 0x4D)
+        const BMDDeckLinkConfigurationID filters[] = {bmdDeckLinkConfigHANCInputFilter1, bmdDeckLinkConfigHANCInputFilter2,
+                                                      bmdDeckLinkConfigHANCInputFilter3, bmdDeckLinkConfigHANCInputFilter4};
+        for (size_t k = 0; k < gHanc.size(); ++k) {
+            const HRESULT hr = cfg->SetInt(filters[k], gHanc[k]);
+            char label[48];
+            std::snprintf(label, sizeof label, "HANC filter %zu = %02X/%02X", k + 1, gHanc[k] >> 8, gHanc[k] & 0xFF);
+            std::printf("  %-40s %s\n", label, hr == S_OK ? "set" : "not accepted");
+        }
         cfg->Release();
     }
 

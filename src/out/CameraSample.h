@@ -1,15 +1,16 @@
 #pragma once
 #include "anc/MetadataProcessor.h"
+#include "meta/MetaRecord.h"
 #include <string>
 #include <vector>
 
-// Which decoder the current feed matched.
-enum class CameraKind { None, Arri, Sony, Blackmagic };
-
-// Camera-agnostic per-frame values, pulled from whichever decoder has data. Feeds the Summary tab and all outputs.
+// Typed convenience view of the master MetaRecord (meta/), used by FreeD, OpenTrackIO and the UI.
+// The record is the source of truth; these fields are generated from it by sampleFrom() / refresh().
 struct CameraSample {
+    MetaRecord record;
+
     CameraKind kind = CameraKind::None;
-    const char* source = "";  // "ARRI", "Sony RDD 18", "Blackmagic" or ""
+    const char* source = "";  // adapter name, e.g. "ARRI", "Sony RDD 18", "Blackmagic"; "" if none
 
     // Camera identity
     std::string cameraMake, cameraModel, cameraSerial, cameraFirmware;
@@ -24,19 +25,18 @@ struct CameraSample {
     double focalMm = 0;
 
     bool hasIris = false;
-    double iris = 0;      // T-stop (ARRI) or F-number (Sony)
+    double iris = 0;      // T-stop (ARRI, Sony 8008) or F-number (Sony 8000, Blackmagic)
     char irisKind = 0;    // 'T' or 'f'
 
     bool hasFocusNorm = false;  // lens focus position 0 (near) .. 1 (far), when no distance is available
     double focusNorm = 0;
 
-    // Orientation in degrees, sent when present. Sony supplies tilt (+ up) and roll (+ clockwise seen from behind);
-    // nothing supplies pan.
+    // Orientation in degrees: tilt (+ up) and roll (+ clockwise seen from behind); nothing supplies pan.
     bool hasPan = false, hasTilt = false, hasRoll = false;
     double pan = 0, tilt = 0, roll = 0;
 
     // Camera settings
-    bool hasSensor = false;  // effective (active) sensor area for the current imager mode, mm
+    bool hasSensor = false;  // effective (active) sensor area for the current recording mode, mm
     double sensorWidthMm = 0, sensorHeightMm = 0;
     std::string sensorSource;  // "camera", "derived: <mode>", "manual"; or why it is missing (e.g. "ambiguous: ...")
     bool hasIso = false;
@@ -53,21 +53,23 @@ struct CameraSample {
 
     // Timing / take
     TimecodeInfo tc;
-    std::string reel;  // ARRI only
+    std::string reel;
     std::string clip;
-    std::string umid;  // Sony VENICE 2 while recording
+    std::string umid;
     RecState rec = RecState::Unknown;
     std::string recSource;
 
     bool anyLens() const { return hasFocus || hasFocusNorm || hasFocal || hasIris; }
+
+    // Regenerates the typed fields from `record` (after the record was changed, e.g. by a manual override).
+    void refresh();
 };
 
 CameraSample sampleFrom(const FrameMetadata& md);
-const char* cameraKindName(CameraKind k);
 
 // ------------------------------------------------------------ variable catalogue
-// Every value the app can output, in display order. OSC sends each as <prefix>/<id>; the UI greys out the ones the
-// current camera does not supply.
+// Every registry field, in display order, with its current value. OSC sends each as <prefix>/<id>; the UI greys out
+// the ones the current camera does not supply.
 enum class VarType { Float, Int, String };
 
 struct VarValue {
@@ -78,6 +80,8 @@ struct VarValue {
     bool available = false;
     double num = 0;
     std::string str;
+    FieldGroup group = FieldGroup::Identity;
+    const FieldValue* value = nullptr;  // provenance (into the sample's record)
     std::string display() const;
 };
 

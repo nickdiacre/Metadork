@@ -213,23 +213,43 @@ void drawSummary(const FrameMetadata& md, bool hasFrame, const CameraSample& cs)
                            "chain (wireless TX, converters, mixers) strips ANC.");
         return;
     }
-    if (ImGui::BeginTable("summary", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
-        for (const auto& v : catalogue(cs)) {
-            if (!std::strcmp(v.id, "timecode") || !std::strcmp(v.id, "recording") || !std::strcmp(v.id, "camera")) continue;
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            ImGui::TextDisabled("%s", v.label);
-            ImGui::TableSetColumnIndex(1);
-            const bool sensorRow = !std::strcmp(v.id, "sensor_width") || !std::strcmp(v.id, "sensor_height");
-            if (v.available) ImGui::TextUnformatted(v.display().c_str());
-            else ImGui::TextDisabled("n/a");
-            if (sensorRow && !cs.sensorSource.empty() && !std::strcmp(v.id, "sensor_height")) {
-                ImGui::SameLine();
-                ImGui::TextDisabled("(%s)", cs.sensorSource.c_str());
-            }
+    // Grouped by the master registry; hover a value for where it came from
+    const auto vars = catalogue(cs);
+    int group = -1;
+    bool open = false;
+    for (const auto& v : vars) {
+        if (!std::strcmp(v.id, "timecode") || !std::strcmp(v.id, "recording") || !std::strcmp(v.id, "camera") ||
+            !std::strcmp(v.id, "lens"))
+            continue;  // shown above / composites of other fields
+        if (int(v.group) != group) {
+            if (open) ImGui::EndTable();
+            group = int(v.group);
+            ImGui::SeparatorText(fieldGroupName(v.group));
+            open = ImGui::BeginTable(fieldGroupName(v.group), 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp);
         }
-        ImGui::EndTable();
+        if (!open) continue;
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextDisabled("%s", v.label);
+        ImGui::TableSetColumnIndex(1);
+        if (v.available) ImGui::TextUnformatted(v.display().c_str());
+        else ImGui::TextDisabled("n/a");
+        if (v.value && ImGui::IsItemHovered()) {
+            if (v.available)
+                ImGui::SetTooltip("%s, %s\nfrom %s", valueSourceName(v.value->source), confidenceName(v.value->confidence),
+                                  v.value->origin.c_str());
+            else if (!v.value->note.empty())
+                ImGui::SetTooltip("%s", v.value->note.c_str());
+        }
+        if (v.available && v.value && v.value->source != ValueSource::Camera) {
+            ImGui::SameLine();
+            ImGui::TextDisabled("(%s)", v.value->source == ValueSource::Manual ? "manual" : "derived");
+        } else if (!v.available && v.value && !v.value->note.empty() && !std::strcmp(v.id, "sensor_height")) {
+            ImGui::SameLine();
+            ImGui::TextDisabled("(%s)", v.value->note.c_str());
+        }
     }
+    if (open) ImGui::EndTable();
 }
 
 void drawArri(const FrameMetadata& md) {

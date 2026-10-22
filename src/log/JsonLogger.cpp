@@ -1,5 +1,6 @@
 #include "log/JsonLogger.h"
 #include "anc/AncRegistry.h"
+#include "meta/Adapters.h"
 #include <cmath>
 #include <cstdio>
 
@@ -124,6 +125,19 @@ std::string JsonLogger::toJson(const FrameMetadata& md, bool raw) {
             j += "]}";
         }
         j += "]";
+    }
+
+    // Master record: every field the camera supplied, keyed by registry id (see docs/fields.json)
+    {
+        const MetaRecord rec = buildRecord(md);
+        std::string meta;
+        for (const auto& f : allFields()) {
+            const FieldValue& v = rec.get(f.field);
+            if (!v.set) continue;
+            meta += (meta.empty() ? "\"" : ",\"") + std::string(f.id) + "\":";
+            meta += f.type == FieldType::String ? "\"" + esc(v.str) + "\"" : num(v.num);
+        }
+        if (!meta.empty()) j += ",\"meta\":{" + meta + "}";
     }
 
     j += ",\"anc\":[";

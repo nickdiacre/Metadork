@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstring>
 #include <random>
+#include <set>
 
 static int g_fail = 0;
 #define CHECK(c) do { if (!(c)) { std::printf("FAIL %s:%d  %s\n", __FILE__, __LINE__, #c); ++g_fail; } } while (0)
@@ -254,6 +255,20 @@ int main() {
               cs.cameraFirmware == "Version3.00" && cs.lensSerial == "Z50128435");
         CHECK(cs.hasIso && cs.iso == 1250 && cs.hasShutter && std::fabs(cs.shutterAngle - 180) < 1e-9);
         CHECK(cs.hasWhiteBalance && cs.whiteBalanceK == 5500 && cs.hasCaptureRate && cs.captureRateNum == 25 && cs.captureRateDen == 1);
+        {   // master record: new fields and provenance
+            const MetaRecord& r = cs.record;
+            CHECK(r.kind == CameraKind::Sony && r.adapter == "Sony RDD 18");
+            CHECK(r.has(Field::FocusDistance) && r.get(Field::FocusDistance).origin == "sony.01.8001" &&
+                  r.get(Field::FocusDistance).confidence == Confidence::Verified);
+            CHECK(std::fabs(r.num(Field::ExposureTime) - 1.0 / 50) < 1e-9);   // 8109 = 1/50
+            CHECK(r.has(Field::Gain) && r.num(Field::Gain) == 0.0);
+            CHECK(std::fabs(r.num(Field::FocalLength35) - 50.0) < 1e-9 && std::fabs(r.num(Field::Extender) - 1.0) < 1e-9);
+            CHECK(r.str(Field::CameraFirmware) == "Version3.00" && r.str(Field::Reel) == "A003");
+            CHECK(r.get(Field::Reel).source == ValueSource::Derived);
+            CHECK(r.str(Field::LookName) == "07_TY_3 STRIP_JP.cube" && r.has(Field::CaptureGamma));
+            CHECK(!r.has(Field::NdDensity) && !r.get(Field::NdDensity).note.empty());   // 8103 seen, meaning unknown
+            CHECK(r.str(Field::Camera) == "Sony VENICE 2 (MPC-3626)" && r.str(Field::Lens) == "Z50128435");
+        }
 
         // OpenTrackIO sample from the VENICE 2 frame
         OpenTrackIOConfig oc;
@@ -346,6 +361,18 @@ int main() {
         CHECK(cs.kind == CameraKind::Arri && cs.cameraModel == "ALEXA Mini LF" && cs.cameraSerial == "33630");
         CHECK(cs.hasFocal && !cs.hasFocus && !cs.hasIris && cs.hasShutter && cs.hasIso && cs.hasTilt && cs.hasRoll);
         CHECK(cs.hasCaptureRate && cs.captureRateNum == 25 && cs.captureRateDen == 1);
+        {   // master record: new fields and provenance
+            const MetaRecord& r = cs.record;
+            CHECK(r.kind == CameraKind::Arri && r.str(Field::CameraIndex) == "A" && r.str(Field::CameraFirmware) == "7.03.00");
+            CHECK(r.num(Field::ProjectFps) == 25.0 && r.get(Field::ProjectFps).origin == "arri.0x1A4");
+            CHECK(std::fabs(r.num(Field::ExposureTime) - 0.02) < 1e-12 && r.get(Field::ExposureTime).confidence == Confidence::Inferred);
+            CHECK(r.has(Field::Tint) && r.num(Field::Tint) == 0 && r.str(Field::LookName) == "ARRI 709");
+            CHECK(r.num(Field::RecordingWidth) == 4448 && r.num(Field::RecordingHeight) == 3096 &&
+                  r.get(Field::RecordingWidth).source == ValueSource::Derived);
+            CHECK(r.str(Field::CameraTimecode) == "00:03:29:17" && r.str(Field::Reel) == "A000APY6");
+            CHECK(!r.has(Field::FocusDistance) && !r.get(Field::FocusDistance).note.empty());
+            CHECK(r.str(Field::Camera) == "ARRI ALEXA Mini LF" && r.str(Field::Lens) == "Canon K35 70 47531R");
+        }
         CHECK(std::fabs(a.pixelAspect - 1.0) < 1e-9 && cs.hasSqueeze && std::fabs(cs.squeeze - 1.0) < 1e-9);
         // Sensor area derived from the recording area's aspect (1721x1198 = LF Open Gate)
         CHECK(a.activeImageW == 1721 && a.activeImageH == 1198);
@@ -424,6 +451,12 @@ int main() {
         CHECK(m.rec == RecState::Stopped && m.recSource.rfind("Blackmagic", 0) == 0);
         CameraSample cs = sampleFrom(m);
         CHECK(std::string(cs.source) == "Blackmagic" && cs.hasIris && cs.irisKind == 'f' && !cs.hasFocus);
+        CHECK(cs.record.num(Field::RecordingWidth) == 1920 && cs.record.num(Field::RecordingHeight) == 1080);
+        CHECK(cs.record.str(Field::Codec).rfind("ProRes", 0) == 0 && cs.record.has(Field::Tint) && cs.record.str(Field::Camera) == "Blackmagic Design");
+        // Registry sanity: every field has a unique id
+        std::set<std::string> ids;
+        for (const auto& f : allFields()) CHECK(ids.insert(f.id).second);
+        CHECK(fieldById("focus") && fieldById("focus")->field == Field::FocusDistance && allFields().size() == kFieldCount);
 
         m = bp.process({bmdPacket("FF0800000904030208482607FF0800000905010200090103FF0600000906010200010000FF080000010B030228230000FF06000000028002C4070000FF080000010E030220030000FF0800000102020264190000FF0E000001090202180018008007380400000000FF0600000A00010202010000FF0A0000090002020000000002000000FF0C000009070202DE03A00F00000000FF0900000A0101020200400000000000FF0600000901010200010000FF0C0000090202020000C6FD00000000FF0500000107010201000000FF0800000303010201325A00FF0600000300020200000000FF060000010F010202010000")}, tc, false, 20.04);
         CHECK(m.bmd.transportMode(mode) && mode == 2 && m.rec == RecState::Recording);
@@ -515,9 +548,11 @@ int main() {
                                   ',', 'f', 0, 0, 0x40, 0x20, 0x00, 0x00};
         CHECK(m.size() == sizeof expect && std::memcmp(m.data(), expect, sizeof expect) == 0);
         CameraSample cs;
-        cs.hasFocus = true; cs.focusM = 1.0;
-        cs.hasIris = true; cs.iris = 4.0;
-        cs.tc.valid = true; cs.tc.h = 1;
+        using C = Confidence;
+        cs.record.setNum(Field::FocusDistance, 1.0, C::Verified, "test");
+        cs.record.setNum(Field::Iris, 4.0, C::Verified, "test");
+        cs.record.setStr(Field::Timecode, "01:00:00:00", C::Verified, "test");
+        cs.refresh();
         OscConfig oc;
         oc.focusUnit = FocusUnit::Millimetres;
         auto msgs = buildOsc(cs, oc);
@@ -526,9 +561,12 @@ int main() {
         oc.bundle = true;
         auto b = buildOsc(cs, oc);
         CHECK(b.size() == 1 && b[0].size() > 16 && std::memcmp(b[0].data(), "#bundle", 8) == 0);
-        cs.hasFocus = false; cs.hasIris = false; cs.tc.valid = false;
+        cs.record = MetaRecord{};
+        cs.refresh();
         CHECK(buildOsc(cs, oc).empty());
-        cs.clip = "A002C003_261006E7"; cs.rec = RecState::Recording;
+        cs.record.setStr(Field::Clip, "A002C003_261006E7", C::Verified, "test");
+        cs.record.setNum(Field::Recording, 1, C::Verified, "test");
+        cs.refresh();
         oc.bundle = false;
         auto cr = buildOsc(cs, oc);
         CHECK(cr.size() == 2 && cr[0] == oscMessage("/camera/recording", int32_t(1)) &&
@@ -536,7 +574,7 @@ int main() {
         oc.disabled.insert("recording");
         CHECK(buildOsc(cs, oc).size() == 1);   // switched off by the user
         oc.disabled.clear();
-        cs.rec = RecState::Unknown;
+        cs.record.clear(Field::Recording);
         CHECK(buildOsc(cs, oc).size() == 1);   // unknown record state is not sent
     }
 

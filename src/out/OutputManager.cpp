@@ -13,10 +13,9 @@ static void reopen(UdpSender& sock, bool enabled, const std::string& host, int p
 void applySensorOverride(CameraSample& s, const OutputSettings& o) {
     if (o.sensorOverride == SensorOverride::Off || o.manualSensorWidthMm <= 0 || o.manualSensorHeightMm <= 0) return;
     if (o.sensorOverride == SensorOverride::WhenMissing && s.hasSensor) return;
-    s.hasSensor = true;
-    s.sensorWidthMm = o.manualSensorWidthMm;
-    s.sensorHeightMm = o.manualSensorHeightMm;
-    s.sensorSource = "manual";
+    s.record.setNum(Field::SensorWidth, o.manualSensorWidthMm, Confidence::Inferred, "manual", ValueSource::Manual);
+    s.record.setNum(Field::SensorHeight, o.manualSensorHeightMm, Confidence::Inferred, "manual", ValueSource::Manual);
+    s.refresh();
 }
 
 OutputManager::OutputManager() : m_otioSourceId(randomUuidUrn()) {}

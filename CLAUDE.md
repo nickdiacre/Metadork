@@ -34,7 +34,15 @@ and Blackmagic URSA.
     (0.0, normalised only, not a distance), zoom (0.7) or clip name; tally byte stayed 0 while recording.
   - `MetadataProcessor`: per-frame decode, record state (ARRI flag > Blackmagic transport > Sony UMID > rec-run TC >
     Sony clip-name events).
-- `src/out/`: SDK-free outputs.
+- `src/meta/`: the master metadata format (see docs/METADATA.md).
+  - `Fields.def`: field registry (id = OSC suffix / JSON key, group, unit, type, Livegrade / OpenTrackIO / FreeD
+    equivalents). Add fields here; ids are stable.
+  - `MetaRecord`: one value per field with provenance (source camera/derived/manual, confidence verified/documented/
+    inferred, origin like `arri.0x045C`, note when missing).
+  - `Adapters`: per-manufacturer detect() + fill() (ARRI, Sony RDD 18, Blackmagic) -> MetaRecord; `buildRecord()`.
+    New makes (Canon, RED ...) = decoder in src/anc + adapter + capture + coverage column.
+  - `sdimeta_coverage` (src/tools/Coverage.cpp) regenerates docs/fields.json and docs/COVERAGE.md from captures.
+- `src/out/`: SDK-free outputs. `CameraSample` is now a typed view generated from MetaRecord (refresh()).
   - `CameraSample`: camera-agnostic values + autodetected `CameraKind` (ARRI / Sony / Blackmagic), incl. make/model/
     serial/firmware, FIZ, tilt, sensor size, ISO, shutter, WB, capture rate, clip/reel/UMID, record state.
     `catalogue()` lists every output variable (id = OSC address suffix) with availability; Summary and the OSC
@@ -52,7 +60,8 @@ and Blackmagic URSA.
   - macOS asks for Local Network permission the first time the app sends; sends fail silently until granted.
 - `src/log/JsonLogger`: JSON Lines, one object per frame, with optional raw ANC hex.
 - `src/capture/`: DeckLink enumeration, input callback, platform shims (BSTR/CFStringRef/char*, COM vs dispatch).
-- `src/tools/Probe.cpp` (`sdimeta_probe [secs] [device] [--dump] [--watch] [--raw]`; `--watch` prints every decoded
+- `tools/capture.sh <camera> <test> [secs] [probe args]`: one-command captures for docs/TEST_PLAN.md.
+- `src/tools/Probe.cpp` (`sdimeta_probe [secs] [device] [--dump] [--watch] [--raw] [--list] [--hanc 524D,...]`; `--watch` prints every decoded
   change with TC, `--raw` every packet of every frame as hex): headless check of ANC packets, every TC source,
   and raw VANC lines (zero vs black vs ADF), with optional payload hex dump.
 - `src/main.cpp`: GLFW + Dear ImGui UI. Tabs: Summary (catalogue), Input (decoded fields of the detected camera,

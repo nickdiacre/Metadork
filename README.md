@@ -133,17 +133,19 @@ src/anc/       ANC decoders, no SDK dependency (unit-tested)
   Rdd18              Sony RDD 18 sets, lens value encodings, clip KLV + UMID
   BmdCameraControl   Blackmagic SDI camera control protocol
   MetadataProcessor  per-frame decode and record state
-src/out/       camera-agnostic sample + variable catalogue, FreeD / OSC / OpenTrackIO, UDP, settings
+src/meta/      master metadata format: field registry (Fields.def), MetaRecord with provenance, per-maker adapters
+src/out/       typed sample view, FreeD / OSC / OpenTrackIO, UDP, settings, sensor mode table
 src/log/       JSON Lines logger
 src/capture/   DeckLink enumeration, capture callback, platform shims
-src/tools/     sdimeta_probe
+src/tools/     sdimeta_probe, sdimeta_coverage (generates docs/fields.json + docs/COVERAGE.md)
+tools/         capture.sh: one-command test captures (docs/TEST_PLAN.md)
 src/main.cpp   GLFW + Dear ImGui UI
 tests/         parser tests, incl. fixtures from real Mini LF, VENICE 2, BURANO and URSA frames
 captures/      probe captures from real cameras (evidence for the decoders)
 ```
 
-`docs/METADATA.md` lists every metadata field, which camera supplies it, what is output, and how it compares with
-Pomfort Livegrade. `CLAUDE.md` holds the detailed reverse-engineering notes: field offsets, encodings, how each finding was verified,
+`docs/METADATA.md` explains the master format and compares it with Pomfort Livegrade; `docs/COVERAGE.md` (generated)
+shows which camera supplies each field; `docs/TEST_PLAN.md` lists the tests that close the remaining gaps. `CLAUDE.md` holds the detailed reverse-engineering notes: field offsets, encodings, how each finding was verified,
 and the open issues.
 
 ## Log format
