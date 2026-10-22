@@ -36,7 +36,7 @@ and Blackmagic URSA.
     (`captures/ursa_tests_2026-10-15_raw.txt`): iris 0.2, ISO, WB, shutter, format, codec, transport mode 10.1
     (0 preview / 2 record: a real record flag), undocumented category 9 (9.4 = BCD timecode). It sent no focus
     (0.0, normalised only, not a distance), zoom (0.7) or clip name; tally byte stayed 0 while recording.
-  - `MetadataProcessor`: per-frame decode, record state (HANC 52/4D flag (ARRI, VENICE 2) > TC recording trigger (RED) >
+  - `MetadataProcessor`: per-frame decode, record state (HANC 52/4D flag (ARRI, VENICE 2) > RED user-bit flag > TC recording trigger >
     Blackmagic transport > Sony UMID > rec-run TC > Sony clip-name events).
 - `src/meta/`: the master metadata format (see docs/METADATA.md).
   - `Fields.def`: field registry (id = OSC suffix / JSON key, group, unit, type, Livegrade / OpenTrackIO / FreeD
@@ -177,13 +177,14 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    Receivers differ: Stage Precision needs ROLL inverted, tilt not (checked on VENICE 2 and Mini LF over OSC, 2026-10-22;
    an earlier Mini LF note saying tilt too was wrong). Both cameras decode + = tilt up, + = roll clockwise from behind, so each
    output (FreeD / OSC / OpenTrackIO) has its own invert pan / tilt / roll flags (`OrientationSigns`), saved in settings.
-2c. RED V-RAPTOR 8K VV (2026-10-22, 8K Pro, 2160p25, `captures/red_raptor_RD-1-rec_2026-10-22_raw.txt`): no ANC metadata
-   at all (VANC empty; HANC only 60/60 ATC timecode, lines 10/571, no hit on 52/4D, 43/05, 44/04, 51/52, 51/53 etc.). REC
-   comes as the SDI recording trigger in the timecode: DeckLink flag bmdTimecodeRecordingTriggered (0x10) and user-bit
-   0x08 of the low byte, set exactly during both takes. `MetadataProcessor` uses it once seen (Unknown until then).
-   User bits alternate between two values each frame (e.g. 16AC0034 / 63010074) and change between takes: meaning
-   unknown. No clip name, so no recording_name for RED yet. No SDI metadata option found in the Raptor menus. Other route:
-   RED's network camera control protocol (RCP2), not investigated.
+2c. RED V-RAPTOR 8K VV (2026-10-22, 8K Pro, 2160p25, `captures/red_raptor_RD-1-rec_2026-10-22_raw.txt`): no VANC/HANC
+   camera metadata packets, only ATC timecode (60/60, LTC line 10 + VITC2 line 571, identical). RED packs clip name +
+   record flag into the 32 timecode user bits, alternating two blocks per frame (RED doc 910-0084 "HD-SDI HANC Metadata
+   Information", written for RED One / DSMC / DSMC2, matches the V-RAPTOR): `src/anc/RedHanc` decodes camera letter, reel,
+   clip, date, 2-char wildcard, camera position and the RS record flag. Verified: R003_C007_102263, C008_1022NE,
+   C009_1022RG; RS set exactly during both takes. While stopped the clip fields show the NEXT clip (~1.5 s after REC off),
+   like Sony. The DeckLink also reports RS as bmdTimecodeRecordingTriggered (generic fallback in MetadataProcessor).
+   No lens / ISO / shutter / WB over SDI; RED's network protocol (RCP2) would be the route for those (not investigated).
 3. (resolved) ARRI little-endian confirmed on a Mini LF.
 4. Hardware so far: UltraStudio Express Recorder 3G on macOS (SDK 16.0) captures VANC fine; Sony BURANO decoded.
    ARRI is still untested on hardware. Builds against SDK 12 (Linux) and SDK 16 (macOS).

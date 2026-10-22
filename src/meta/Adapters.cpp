@@ -237,11 +237,24 @@ void fillBmd(const FrameMetadata& md, MetaRecord& r) {
 
 }  // namespace
 
+// RED: SDI carries only timecode + the user-bit block (clip name, camera letter, record flag). No lens / camera settings.
+bool detectRed(const FrameMetadata& md) { return md.red.valid; }
+
+void fillRed(const FrameMetadata& md, MetaRecord& r) {
+    const auto& red = md.red;
+    r.setStr(Field::CameraMake, "RED", C::Verified, "red.ub");
+    r.setStr(Field::CameraIndex, std::string(1, red.cameraLetter), C::Verified, "red.ub.CAML");
+    r.setStr(Field::Reel, red.reelName(), C::Verified, "red.ub.REEL");
+    r.setStr(Field::Clip, red.clipName(), C::Verified, "red.ub (next clip while stopped)");
+    r.note(Field::FocusDistance, "RED sends no lens data over SDI");
+}
+
 const std::vector<CameraAdapter>& cameraAdapters() {
     static const std::vector<CameraAdapter> adapters = {
         {"ARRI", CameraKind::Arri, detectArri, fillArri},
         {"Sony RDD 18", CameraKind::Sony, detectSony, fillSony},
         {"Blackmagic", CameraKind::Blackmagic, detectBmd, fillBmd},
+        {"RED", CameraKind::Red, detectRed, fillRed},
     };
     return adapters;
 }

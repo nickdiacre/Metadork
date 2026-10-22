@@ -18,6 +18,7 @@ add_library(sdimeta_core STATIC
     src/anc/Rdd18.cpp
     src/anc/MetadataProcessor.cpp
     src/anc/TakeTracker.cpp
+    src/anc/RedHanc.cpp
     src/log/JsonLogger.cpp
     src/meta/MetaRecord.cpp
     src/meta/Adapters.cpp

@@ -9,20 +9,20 @@ The camera is detected automatically and only the data it actually supplies is s
 
 ## What each camera provides
 
-Verified on real hardware with an UltraStudio Express Recorder 3G (DeckLink SDK 16, macOS).
+Verified on real hardware with an UltraStudio Express Recorder 3G and a DeckLink 8K Pro (DeckLink SDK 16, macOS).
 
-| | Sony VENICE 2 | Sony BURANO | ARRI ALEXA Mini LF | Blackmagic URSA |
-|---|---|---|---|---|
-| Format | RDD 18 (43/05) + clip KLV (44/04) | same | ARRI 4 KB block (44/04, lines 9-11) | Camera control (51/53) |
-| Focus distance | ✅ metres | ✅ (with electronic lens) | ✅ (LDS / /i lens, or motors + lens file) | position 0-1 only, if sent |
-| Iris | ✅ T and f | ✅ | ✅ T | ✅ f |
-| Focal length | ✅ | ✅ | ✅ | ✅ only with electronic zoom |
-| Tilt / roll | ✅ 0.1° | same fields, not separately verified | ✅ 0.1° | — |
-| Record state | ✅ (take UMID) | Rec Run TC or clip-name changes | Rec Run TC, or HANC-capable DeckLink | ✅ (transport mode) |
-| Clip / reel | ✅ | ✅ | ✅ | — |
-| Sensor size (active) | ✅ | ✅ | derived from the recording mode (LF / Mini LF, ALEXA 35), or manual | manual |
-| Anamorphic squeeze | ✅ | not yet tested | ✅ | not yet tested |
-| ISO, shutter, WB, fps, model, serial | ✅ | ✅ | ✅ | ✅ (no model) |
+| | Sony VENICE 2 | Sony BURANO | ARRI ALEXA Mini LF | Blackmagic URSA | RED V-RAPTOR |
+|---|---|---|---|---|---|
+| Format | RDD 18 (43/05) + clip KLV (44/04) | same | ARRI 4 KB block (44/04, lines 9-11) | Camera control (51/53) | Timecode user bits (60/60) |
+| Focus distance | ✅ metres | ✅ (with electronic lens) | ✅ (LDS / /i lens, or motors + lens file) | position 0-1 only, if sent | — |
+| Iris | ✅ T and f | ✅ | ✅ T | ✅ f | — |
+| Focal length | ✅ (+ crop-aware 35 mm equivalent) | ✅ | ✅ | ✅ only with electronic zoom | — |
+| Tilt / roll | ✅ 0.1° | same fields, not separately verified | ✅ 0.1° | — | — |
+| Record state | ✅ HANC flag (8K Pro) or take UMID | Rec Run TC or clip-name changes | ✅ HANC flag (8K Pro), or Rec Run TC | ✅ (transport mode) | ✅ (user-bit flag) |
+| Clip / reel | ✅ | ✅ | ✅ | — | ✅ |
+| Sensor size (active) | ✅ follows imager mode | ✅ | manual (not sent) | manual | — |
+| Anamorphic squeeze | ✅ 1.25-2.0 | not yet tested | ✅ | not yet tested | — |
+| ISO/EI, shutter, WB, ND, fps, model, serial | ✅ (EI only, no base ISO) | ✅ | ✅ | ✅ (no model) | — |
 
 Other ARRI bodies (ALEXA 35, LF, Mini, SXT/XT, AMIRA, 65, 265) use the same documented block; firmware differences
 (for example shutter units) are handled where known. Timecode (RP 188 VITC / LTC) is read from every camera.
@@ -87,6 +87,8 @@ The raw VANC report tells "no ANC in the signal" (lines captured, blank) apart f
   name and focal length but no focus or iris); clear the lens table to use the lens's data. For record state through a
   device without HANC capture, set timecode to **Rec Run**.
 - **Blackmagic URSA:** iris, settings and record state are sent; focus and zoom only with lenses that report them.
+- **RED:** over SDI only timecode, clip name (camera letter, reel, clip, date, wildcard) and record state. While
+  stopped the clip name is the next clip.
 - **SDI format:** a 3G device (like the UltraStudio Express Recorder 3G) needs HD / 3G-SDI, not 6G/12G UHD.
 - **Signal chain:** vision mixers, some routers' processing, wireless links and converters often strip ANC. Test with
   a direct cable first.

@@ -61,7 +61,13 @@ FrameMetadata MetadataProcessor::process(std::vector<AncPacket>&& packets, const
             md.recSource = "SDI rec flag (HANC 0x52/0x4D)";
         }
     }
-    // SDI recording trigger in the timecode (RED V-RAPTOR, 2026-10-22). Only set while recording, so "stopped" is
+    // RED: clip name + RS record flag in the timecode user bits (see RedHanc.h); valid from the first two frames.
+    if (tc.valid && !noSignal) md.red = m_red.update(tc.userBits);
+    if (md.rec == RecState::Unknown && md.red.valid) {
+        md.rec = md.red.recording ? RecState::Recording : RecState::Stopped;
+        md.recSource = "RED record flag (timecode user bits)";
+    }
+    // Generic SDI recording trigger in the timecode (DeckLink flag). Only set while recording, so "stopped" is
     // trusted once the camera has been seen setting it.
     if (tc.recTrigger) m_tcTriggerSeen = true;
     if (md.rec == RecState::Unknown && m_tcTriggerSeen && tc.valid && !noSignal) {
@@ -101,7 +107,7 @@ FrameMetadata MetadataProcessor::process(std::vector<AncPacket>&& packets, const
     md.rdd18 = parseRdd18(md.packets);
     md.hasRdd18 = md.rdd18.packets > 0;
 
-    const std::string clip = md.hasArri ? md.arri.clip() : md.sonyClip;
+    const std::string clip = md.hasArri ? md.arri.clip() : !md.sonyClip.empty() ? md.sonyClip : md.red.valid ? md.red.clipName() : "";
     md.recordingName = m_take.update(md.rec == RecState::Recording ? 1 : md.rec == RecState::Stopped ? 0 : -1, clip, hostTime);
     return md;
 }

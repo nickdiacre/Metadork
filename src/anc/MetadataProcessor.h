@@ -1,4 +1,5 @@
 #pragma once
+#include "anc/RedHanc.h"
 #include "anc/AncPacket.h"
 #include "anc/ArriMetadata.h"
 #include "anc/BmdCameraControl.h"
@@ -52,6 +53,7 @@ struct FrameMetadata {
     bool hasRdd18 = false;  // any 43/05 packets this frame
     Rdd18Frame rdd18;
     std::string sonyClip;   // from Sony private KLV (44/04)
+    RedHancInfo red;        // RED clip name / record flag from the timecode user bits
     std::string sonyUmid;   // SMPTE UMID of the take being recorded (VENICE 2), hex; empty when stopped
 
     BmdFrame bmd;           // Blackmagic camera control (51/53) and tally (51/52)
@@ -81,6 +83,7 @@ private:
     bool m_tcRecRun = false;  // TC seen holding: camera is in rec-run
     std::string m_lastClip;
     RecState m_clipRec = RecState::Unknown;
+    RedHancDecoder m_red;
     bool m_tcTriggerSeen = false;  // camera has set the TC recording trigger at least once
     std::atomic<bool> m_recFromTc{true};
     TakeTracker m_take;

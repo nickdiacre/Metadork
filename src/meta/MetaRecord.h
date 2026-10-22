@@ -37,7 +37,7 @@ const FieldInfo& fieldInfo(Field f);
 const FieldInfo* fieldById(const std::string& id);
 const char* fieldGroupName(FieldGroup g);
 
-enum class CameraKind { None, Arri, Sony, Blackmagic };
+enum class CameraKind { None, Arri, Sony, Blackmagic, Red };
 const char* cameraKindName(CameraKind k);
 
 enum class ValueSource { Camera, Derived, Manual };

@@ -35,6 +35,7 @@ const char* cameraKindName(CameraKind k) {
         case CameraKind::Arri: return "ARRI";
         case CameraKind::Sony: return "Sony";
         case CameraKind::Blackmagic: return "Blackmagic";
+        case CameraKind::Red: return "RED";
         default: return "None";
     }
 }
