@@ -721,6 +721,18 @@ int main() {
     CHECK(j.find("\"focus_mm\":\"inf\"") != std::string::npos);
     std::printf("%s\n", j.substr(0, 400).c_str());
 
+    // RED: record state from the timecode recording trigger only (no ANC metadata). Unknown until first seen.
+    {
+        MetadataProcessor red;
+        TimecodeInfo t; t.valid = true; t.h = 0; t.m = 32; t.s = 5;
+        CHECK(red.process({}, t, false, 0.00).rec == RecState::Unknown);
+        t.recTrigger = true;
+        auto r1 = red.process({}, t, false, 0.04);
+        CHECK(r1.rec == RecState::Recording && r1.recSource == "Timecode recording trigger (RP 188)");
+        t.recTrigger = false;
+        CHECK(red.process({}, t, false, 0.08).rec == RecState::Stopped);
+    }
+
     std::printf(g_fail ? "%d FAILED\n" : "All parser tests passed\n", g_fail);
     return g_fail ? 1 : 0;
 }

@@ -61,6 +61,13 @@ FrameMetadata MetadataProcessor::process(std::vector<AncPacket>&& packets, const
             md.recSource = "SDI rec flag (HANC 0x52/0x4D)";
         }
     }
+    // SDI recording trigger in the timecode (RED V-RAPTOR, 2026-10-22). Only set while recording, so "stopped" is
+    // trusted once the camera has been seen setting it.
+    if (tc.recTrigger) m_tcTriggerSeen = true;
+    if (md.rec == RecState::Unknown && m_tcTriggerSeen && tc.valid && !noSignal) {
+        md.rec = tc.recTrigger ? RecState::Recording : RecState::Stopped;
+        md.recSource = "Timecode recording trigger (RP 188)";
+    }
     md.bmd = parseBmd(md.packets);
     int transport = 0;
     if (md.rec == RecState::Unknown && md.bmd.transportMode(transport)) {

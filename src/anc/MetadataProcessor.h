@@ -14,6 +14,7 @@ struct TimecodeInfo {
     uint8_t h = 0, m = 0, s = 0, f = 0;
     bool dropFrame = false;
     uint32_t userBits = 0;
+    bool recTrigger = false;  // SDI recording trigger (RP 188 user bit; DeckLink bmdTimecodeRecordingTriggered), e.g. RED
     std::string str() const;
     bool operator==(const TimecodeInfo& o) const { return valid == o.valid && h == o.h && m == o.m && s == o.s && f == o.f; }
 };
@@ -80,6 +81,7 @@ private:
     bool m_tcRecRun = false;  // TC seen holding: camera is in rec-run
     std::string m_lastClip;
     RecState m_clipRec = RecState::Unknown;
+    bool m_tcTriggerSeen = false;  // camera has set the TC recording trigger at least once
     std::atomic<bool> m_recFromTc{true};
     TakeTracker m_take;
 };

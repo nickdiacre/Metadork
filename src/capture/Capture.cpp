@@ -304,6 +304,7 @@ HRESULT CaptureSession::VideoInputFrameArrived(IDeckLinkVideoInputFrame* frame, 
     if (frame->GetTimecode(bmdTimecodeRP188Any, &dtc) == S_OK && dtc) {
         if (dtc->GetComponents(&tc.h, &tc.m, &tc.s, &tc.f) == S_OK) tc.valid = true;
         tc.dropFrame = (dtc->GetFlags() & bmdTimecodeIsDropFrame) != 0;
+        tc.recTrigger = (dtc->GetFlags() & bmdTimecodeRecordingTriggered) != 0;
         BMDTimecodeUserBits ub = 0;
         if (dtc->GetTimecodeUserBits(&ub) == S_OK) tc.userBits = ub;
         dtc->Release();
