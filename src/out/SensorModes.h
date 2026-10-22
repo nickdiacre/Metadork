@@ -2,7 +2,9 @@
 #include <string>
 #include <vector>
 
-// Recording modes with their active sensor area, for cameras that don't send sensor size over SDI (ARRI).
+// Recording modes with their active sensor area: presets for the manual sensor size, for cameras that don't send it
+// over SDI (ARRI). Not used to auto-detect: ARRI's Active Image fields don't identify the mode (a Mini LF in LF 2.39:1
+// reported 3840x2160).
 // Area = photosites x photosite pitch, from ARRI's published format data:
 //   ALEXA LF / Mini LF (ALEV III, 8.25 um): LF Open Gate 4448x3096, LF 16:9 UHD 3840x2160, LF 2.39:1 4448x1856
 //   ALEXA 35 (ALEV 4, 6.075 um): 4.6K 3:2 Open Gate 4608x3164, 4.6K 16:9 4608x2592, 4K 16:9 4096x2304,

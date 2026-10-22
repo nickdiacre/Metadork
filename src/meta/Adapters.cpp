@@ -1,5 +1,4 @@
 #include "meta/Adapters.h"
-#include "out/SensorModes.h"
 #include <cmath>
 #include <sstream>
 
@@ -62,7 +61,7 @@ void fillArri(const FrameMetadata& md, MetaRecord& r) {
     if (a.exposureIndex) r.setNum(Field::Iso, a.exposureIndex, C::Verified, hex(0x074));
     if (a.shutterAngle > 0) r.setNum(Field::ShutterAngle, a.shutterAngle, C::Verified, hex(0x190));
     if (a.exposureTimeRaw > 0 && a.exposureTimeRaw != 0xFFFFFFFFu)  // microseconds: 20000 at 180 deg / 25 fps
-        r.setNum(Field::ExposureTime, a.exposureTimeRaw / 1e6, C::Inferred, hex(0x18C));
+        r.setNum(Field::ExposureTime, a.exposureTimeRaw / 1e6, C::Verified, hex(0x18C));  // Mini LF 180/90/45 deg at 25 fps
     if (a.whiteBalanceK) r.setNum(Field::WhiteBalance, a.whiteBalanceK, C::Verified, hex(0x05C));
     r.setNum(Field::Tint, a.tint, C::Verified, hex(0x060));
     if (a.ndType != 0xFFFF) r.setNum(Field::NdDensity, a.ndDensity, C::Verified, hex(0x38A));  // Mini LF 0 / 0.6 / 1.2 / 1.8
@@ -75,27 +74,16 @@ void fillArri(const FrameMetadata& md, MetaRecord& r) {
     if (a.pixelAspect > 0) r.setNum(Field::Squeeze, a.pixelAspect, C::Verified, hex(0x0C4));  // Mini LF 1.0 .. 2.0
     r.setStr(Field::LookName, a.lookFile, C::Verified, hex(0x0CC));
 
-    // ARRI sends no sensor size: derive it from the camera model and the recording area's shape.
-    if (a.activeImageW > 0 && a.activeImageH > 0) {
-        const SensorGuess g = guessSensorMode(model + " " + a.cameraTypeName, double(a.activeImageW) / a.activeImageH);
-        if (g.mode) {
-            const std::string origin = std::string("derived: ") + g.mode->name;
-            r.setNum(Field::SensorWidth, g.mode->widthMm(), C::Inferred, origin, ValueSource::Derived);
-            r.setNum(Field::SensorHeight, g.mode->heightMm(), C::Inferred, origin, ValueSource::Derived);
-            r.setNum(Field::RecordingWidth, g.mode->photositesW, C::Inferred, origin, ValueSource::Derived);
-            r.setNum(Field::RecordingHeight, g.mode->photositesH, C::Inferred, origin, ValueSource::Derived);
-        } else {
-            std::string why = "recording mode not in table";
-            if (g.candidates.size() > 1) {
-                why = "ambiguous:";
-                for (const auto* m : g.candidates) why += std::string(" ") + m->name + ",";
-                why.pop_back();
-            }
-            r.note(Field::SensorWidth, why);
-            r.note(Field::SensorHeight, why);
-        }
+    // ARRI sends no sensor size, and the Active Image fields (IDI06) don't identify the recording mode: on a Mini LF
+    // they gave the Open Gate shape in Open Gate, but 3840x2160 (16:9) in LF 2.39:1. So no guess is made: the size
+    // comes from the manual setting (Output -> Sensor size presets).
+    {
+        char why[160];
+        std::snprintf(why, sizeof why, "ARRI doesn't send sensor size: set it in Output > Sensor size (SDI active image %dx%d)",
+                      a.activeImageW, a.activeImageH);
+        r.note(Field::SensorWidth, why);
+        r.note(Field::SensorHeight, why);
     }
-
     if (a.hasTilt) r.setNum(Field::Tilt, a.tiltDeg, C::Verified, hex(0x45C));
     if (a.hasRoll) r.setNum(Field::Roll, a.rollDeg, C::Verified, hex(0x460));
 

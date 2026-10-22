@@ -1,0 +1,16 @@
+Device: DeckLink 8K Pro (4)
+  VANC requires 10-bit YUV frames          no
+  HANC capture supported                   yes
+  HANC needs DID/SDID filters              yes
+  HANC filter 1 = 52/4D                    set
+Capturing for 3600 s... (watching for changes)
+
+  NO SIGNAL (frame flagged)
+  signal back
+   0.00s  00:03:11:14  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=1 -> viewer SENDS
+   0.00s  00:03:11:14  ARRI CLIP '' -> 'A000C051_130101_APY6'
+   0.00s  00:03:11:14  REC FLAG STOPPED
+  41.56s  00:03:53:04  FIELD white_balance          5900 K -> 6200 K
+  41.56s  00:03:53:04  FIELD tint                   -2.400 -> -3.000
+  45.44s  00:03:57:01  FIELD white_balance          6200 K -> 5900 K
+  45.44s  00:03:57:01  FIELD tint                   -3.000 -> -2.400

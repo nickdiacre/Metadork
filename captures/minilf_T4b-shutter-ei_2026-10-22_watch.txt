@@ -1,0 +1,33 @@
+Device: DeckLink 8K Pro (4)
+  VANC requires 10-bit YUV frames          no
+  HANC capture supported                   yes
+  HANC needs DID/SDID filters              yes
+  HANC filter 1 = 52/4D                    set
+Capturing for 3600 s... (watching for changes)
+
+  NO SIGNAL (frame flagged)
+  signal back
+   0.00s  00:04:10:12  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=1 -> viewer SENDS
+   0.00s  00:04:10:12  ARRI CLIP '' -> 'A000C051_130101_APY6'
+   0.00s  00:04:10:12  REC FLAG STOPPED
+   8.64s  00:04:19:04  FIELD tint                   -2.400 -> 0.000
+  11.76s  00:04:22:07  FIELD shutter_angle          180.0 deg -> 172.8 deg
+  11.76s  00:04:22:07  FIELD exposure_time          0.020 s -> 0.019 s
+  12.52s  00:04:23:01  FIELD shutter_angle          172.8 deg -> 90.000 deg
+  12.52s  00:04:23:01  FIELD exposure_time          0.019 s -> 0.010 s
+  15.20s  00:04:25:18  FIELD shutter_angle          90.000 deg -> 45.000 deg
+  15.20s  00:04:25:18  FIELD exposure_time          0.010 s -> 0.005 s
+  17.56s  00:04:28:02  FIELD shutter_angle          45.000 deg -> 90.000 deg
+  17.56s  00:04:28:02  FIELD exposure_time          0.005 s -> 0.010 s
+  17.68s  00:04:28:05  FIELD shutter_angle          90.000 deg -> 172.8 deg
+  17.68s  00:04:28:05  FIELD exposure_time          0.010 s -> 0.019 s
+  18.32s  00:04:28:21  FIELD shutter_angle          172.8 deg -> 180.0 deg
+  18.32s  00:04:28:21  FIELD exposure_time          0.019 s -> 0.020 s
+  23.96s  00:04:34:12  FIELD iso                    800 -> 500
+  27.04s  00:04:37:14  FIELD iso                    500 -> 400
+  30.20s  00:04:40:18  FIELD iso                    400 -> 640
+  30.52s  00:04:41:01  FIELD iso                    640 -> 800
+  33.84s  00:04:44:09  FIELD iso                    800 -> 1000
+  33.92s  00:04:44:11  FIELD iso                    1000 -> 1600
+  40.48s  00:04:51:00  FIELD iso                    1600 -> 1000
+  41.08s  00:04:51:15  FIELD iso                    1000 -> 800

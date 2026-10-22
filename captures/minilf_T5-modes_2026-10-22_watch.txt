@@ -1,0 +1,31 @@
+Device: DeckLink 8K Pro (4)
+  VANC requires 10-bit YUV frames          no
+  HANC capture supported                   yes
+  HANC needs DID/SDID filters              yes
+  HANC filter 1 = 52/4D                    set
+Capturing for 3600 s... (watching for changes)
+
+  NO SIGNAL (frame flagged)
+  signal back
+   0.00s  00:05:08:15  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=1 -> viewer SENDS
+   0.00s  00:05:08:15  ARRI CLIP '' -> 'A000C051_130101_APY6'
+   0.00s  00:05:08:15  REC FLAG STOPPED
+  NO SIGNAL (frame flagged)
+  signal back
+  44.56s  00:05:53:04  FRAME GAP 8.96 s
+  44.56s  00:05:53:04  FIELD lens                   Supreme Prime 50/T1.5 -> n/a
+  44.56s  00:05:53:04  FIELD lens_model             Supreme Prime 50/T1.5 -> n/a
+  44.56s  00:05:53:04  FIELD lens_serial            50128435 -> n/a
+  46.64s  00:05:55:07  FIELD lens                   n/a -> 50128435
+  46.64s  00:05:55:07  FIELD lens_serial            n/a -> 50128435
+  46.72s  00:05:55:07  FIELD lens                   50128435 -> Supreme Prime 50/T1.5
+  46.72s  00:05:55:07  FIELD lens_model             n/a -> Supreme Prime 50/T1.5
+  NO SIGNAL (frame flagged)
+  signal back
+  80.52s  00:06:29:02  FRAME GAP 10.04 s
+  80.52s  00:06:29:02  FIELD lens                   Supreme Prime 50/T1.5 -> n/a
+  80.52s  00:06:29:02  FIELD lens_model             Supreme Prime 50/T1.5 -> n/a
+  80.52s  00:06:29:02  FIELD lens_serial            50128435 -> n/a
+  82.96s  00:06:31:13  FIELD lens                   n/a -> Supreme Prime 50/T1.5
+  82.96s  00:06:31:13  FIELD lens_model             n/a -> Supreme Prime 50/T1.5
+  82.96s  00:06:31:13  FIELD lens_serial            n/a -> 50128435

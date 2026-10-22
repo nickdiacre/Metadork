@@ -372,7 +372,7 @@ int main() {
             const MetaRecord& r = cs.record;
             CHECK(r.kind == CameraKind::Arri && r.str(Field::CameraIndex) == "A" && r.str(Field::CameraFirmware) == "7.03.00");
             CHECK(r.num(Field::ProjectFps) == 25.0 && r.get(Field::ProjectFps).origin == "arri.0x1A4");
-            CHECK(std::fabs(r.num(Field::ExposureTime) - 0.02) < 1e-12 && r.get(Field::ExposureTime).confidence == Confidence::Inferred);
+            CHECK(std::fabs(r.num(Field::ExposureTime) - 0.02) < 1e-12 && r.get(Field::ExposureTime).confidence == Confidence::Verified);
             CHECK(r.has(Field::Tint) && r.num(Field::Tint) == 0 && r.str(Field::LookName) == "ARRI 709");
             {   // tint is a float: 0xC0400000 = -3.0 (seen on the Mini LF while adjusting tint)
                 std::vector<uint8_t> blk2(4096, 0);
@@ -382,27 +382,26 @@ int main() {
                 ArriMetadata am;
                 CHECK(parseArriBlock(blk2.data(), blk2.size(), am) && std::fabs(am.tint + 3.0) < 1e-9);
             }
-            CHECK(r.num(Field::RecordingWidth) == 4448 && r.num(Field::RecordingHeight) == 3096 &&
-                  r.get(Field::RecordingWidth).source == ValueSource::Derived);
+            CHECK(!r.has(Field::RecordingWidth) && !r.has(Field::SensorWidth));
             CHECK(r.str(Field::CameraTimecode) == "00:03:29:17" && r.str(Field::Reel) == "A000APY6");
             CHECK(!r.has(Field::FocusDistance) && !r.get(Field::FocusDistance).note.empty());
             CHECK(r.str(Field::Camera) == "ARRI ALEXA Mini LF" && r.str(Field::Lens) == "Canon K35 70 47531R");
         }
         CHECK(std::fabs(a.pixelAspect - 1.0) < 1e-9 && cs.hasSqueeze && std::fabs(cs.squeeze - 1.0) < 1e-9);
-        // Sensor area derived from the recording area's aspect (1721x1198 = LF Open Gate)
+        // ARRI sends no sensor size and its Active Image fields don't identify the mode: no auto value, a note instead
         CHECK(a.activeImageW == 1721 && a.activeImageH == 1198);
-        CHECK(cs.hasSensor && std::fabs(cs.sensorWidthMm - 36.696) < 1e-9 && std::fabs(cs.sensorHeightMm - 25.542) < 1e-9);
-        CHECK(cs.sensorSource == "derived: LF Open Gate");
+        CHECK(!cs.hasSensor && cs.sensorSource.find("Sensor size") != std::string::npos);
         {
-            // Manual size: only fills in when missing unless forced
+            // Manual size fills in when the camera has none; "Always" replaces a camera value
             OutputSettings os;
-            os.manualSensorWidthMm = 24.0; os.manualSensorHeightMm = 13.5;
+            os.manualSensorWidthMm = 36.696; os.manualSensorHeightMm = 15.312;  // LF 2.39:1 preset
             CameraSample c2 = cs;
             applySensorOverride(c2, os);
-            CHECK(c2.sensorSource == "derived: LF Open Gate");
-            os.sensorOverride = SensorOverride::Always;
-            applySensorOverride(c2, os);
-            CHECK(c2.sensorSource == "manual" && c2.sensorWidthMm == 24.0);
+            CHECK(c2.hasSensor && c2.sensorSource == "manual" && c2.sensorWidthMm == 36.696);
+            os.sensorOverride = SensorOverride::Off;
+            CameraSample c3 = cs;
+            applySensorOverride(c3, os);
+            CHECK(!c3.hasSensor);
         }
         // Ambiguous / unknown modes are not guessed
         CHECK(guessSensorMode("ALEXA 35", 16.0 / 9.0).candidates.size() == 3 && !guessSensorMode("ALEXA 35", 16.0 / 9.0).mode);

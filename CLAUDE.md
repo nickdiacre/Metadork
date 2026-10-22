@@ -91,11 +91,11 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    fps 0x1A4 is fps x1000; new reel/clip fields (0x6B0/0x6BB) are 0xFF, old ones (0x4F8/0x698) used. Tilt 0x45C /
    roll 0x460 = signed 16-bit in the low half (0xFFFFFFFF = n/a, pan always n/a), tenths of a degree: roll verified
    with a phone inclinometer (20 deg clockwise from behind = 205; + = clockwise, same as Sony). No sensor physical size
-   on SDI (IDI fields describe the SDI output image), BUT the Active Image (IDI06, 0x2C/0x30) is the recording area
-   mapped into the SDI frame (Mini LF Open Gate: 1721x1198, aspect 1.4366 = 4448x3096). `SensorModes` derives the
-   area from camera model + that aspect (photosites x pitch from ARRI format data; LF/Mini LF 8.25 um, ALEXA 35
-   6.075 um) when exactly one mode matches; ALEXA 35's 16:9 modes are ambiguous, older bodies not tabled. A manual
-   sensor size (Output tab: off / when missing / always, presets) covers the rest. Frame line file name e.g.
+   on SDI (IDI fields describe the SDI output image), and the Active Image (IDI06, 0x2C/0x30) does NOT identify the recording
+   mode: Open Gate gave 1721x1198 (its own shape) but LF 2.39:1 4.5K gave 3840x2160 (the SDI frame), 2026-10-22. So
+   there's no auto-derivation: ARRI sensor size comes from the manual setting (Output tab: off / when missing /
+   always), with presets in `SensorModes` (photosites x pitch from ARRI format data; LF/Mini LF 8.25 um, ALEXA 35
+   6.075 um). The SDI image doesn't reveal crop modes either (the recorded area is scaled to fill it). Frame line file name e.g.
    "ARRI LFOG 1.78" hints the format but is user-named. UMID 0x27C all FF.
    Pixel aspect / anamorphic squeeze (ICI18, 0x0C4) is an IEEE float: 0x3F800000 = 1.0 with a spherical lens;
    anamorphic values (1.25..2.0) not yet seen on hardware. Output as OSC /squeeze and OpenTrackIO
