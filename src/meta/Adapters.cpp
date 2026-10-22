@@ -90,8 +90,8 @@ void fillArri(const FrameMetadata& md, MetaRecord& r) {
     r.setStr(Field::CameraTimecode, a.masterTc, C::Verified, hex(0x1A8));
     r.setStr(Field::Clip, a.clip(), C::Verified, a.clipName.empty() ? hex(0x698) : hex(0x6BB));
     r.setStr(Field::Reel, a.reel(), C::Verified, a.reelName.empty() ? hex(0x4F8) : hex(0x6B0));
-    r.setStr(Field::Scene, a.scene, C::Documented, hex(0x500));
-    r.setStr(Field::TakeName, a.take, C::Documented, hex(0x510));
+    r.setStr(Field::Scene, a.scene, C::Verified, hex(0x500));
+    r.setStr(Field::TakeName, a.take, C::Verified, hex(0x510));
     if (a.circleTake) r.setNum(Field::CircleTake, 1, C::Documented, hex(0x4F4));
 }
 
