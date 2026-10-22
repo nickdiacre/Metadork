@@ -143,6 +143,9 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    ... 256 = 2.4); nd = 0.3 x log2(value). BURANO sends 6 (variable ND ~0.78), unverified.
    EI (`captures/venice2_V2-3-ei_2026-10-22_raw.txt`): 02/810B and 02/8115 always equal = exposure index (seen 400..3200 in
    1/3-stop steps). Switching base ISO 800 <-> 3200 changed no other tag: base ISO is not sent by the VENICE 2.
+   Shutter (`captures/venice2_V2-5-shutter_2026-10-22_raw.txt`, 25 fps): 8108 = angle x60 and 8109 = exposure time (rational)
+   are both filled and consistent in angle mode (180/173/144/90 -> 1/50..1/100) and speed mode (1/25..1/100 -> 360..90 deg);
+   no tag says which mode is selected.
    BURANO sends no record flag in RDD 18 (verified over 4 REC cycles,
    `captures/burano_rec_toggle_2026-10-06.txt`). With the camera in rec-run TC, RP188 TC runs only while recording;
    The 44/04 clip name is the clip being recorded while rolling, and the NEXT clip number once stopped; its 2-char
