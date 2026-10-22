@@ -1,0 +1,313 @@
+Device: DeckLink 8K Pro (4)
+  VANC requires 10-bit YUV frames          no
+  HANC capture supported                   yes
+  HANC needs DID/SDID filters              yes
+  HANC filter 1 = 52/4D                    set
+Capturing for 3600 s... (watching for changes)
+
+  NO SIGNAL (frame flagged)
+  signal back
+   0.00s  00:10:55:24  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=1 -> viewer SENDS
+   0.00s  00:10:55:24  ARRI CLIP '' -> 'A000C051_130101_APY6'
+   0.00s  00:10:55:24  REC FLAG STOPPED
+   0.04s  00:10:55:24  FIELD focus                  1.090 m -> 1.091 m
+   0.08s  00:10:55:24  FIELD focus                  1.091 m -> 1.090 m
+   1.52s  00:10:55:24  FIELD focus                  1.090 m -> 1.091 m
+   1.56s  00:10:55:24  FIELD focus                  1.091 m -> 1.090 m
+   1.60s  00:10:55:24  FIELD focus                  1.090 m -> 1.091 m
+   1.64s  00:10:55:24  FIELD focus                  1.091 m -> 1.090 m
+   5.40s  00:10:55:24  FIELD scene                  dddd -> n/a
+   8.16s  00:10:55:24  FIELD take                   dnnn -> n/a
+   9.12s  00:10:55:24  FIELD focus                  1.090 m -> 1.091 m
+   9.16s  00:10:55:24  FIELD focus                  1.091 m -> 1.090 m
+  21.04s  00:10:55:24  FIELD focus                  1.090 m -> 1.091 m
+  21.08s  00:10:55:24  FIELD focus                  1.091 m -> 1.090 m
+  25.84s  00:10:55:24  FIELD focus                  1.090 m -> 1.091 m
+  25.88s  00:10:55:24  FIELD focus                  1.091 m -> 1.090 m
+  35.44s  00:10:56:00  TIMECODE started running
+  35.44s  00:10:56:00  FIELD recording              0 -> 1
+  35.44s  00:10:56:00  REC FLAG RECORDING
+  35.60s  00:10:56:08  FIELD tilt                   0.300 deg -> 0.400 deg
+  35.60s  00:10:56:08  FIELD clip                   A000C051_130101_APY6 -> A001C052_130101_APY6
+  35.60s  00:10:56:08  FIELD reel                   A000APY6 -> A001APY6
+  35.60s  00:10:56:08  ARRI CLIP 'A000C051_130101_APY6' -> 'A001C052_130101_APY6'
+  35.68s  00:10:56:12  FIELD tilt                   0.400 deg -> 0.600 deg
+  35.92s  00:10:56:24  FIELD recording_name         n/a -> A001C052_130101_APY6
+  35.92s  00:10:56:24  RECORDING NAME -> 'A001C052_130101_APY6'
+  36.20s  00:10:57:13  FIELD tilt                   0.600 deg -> 0.300 deg
+  37.52s  00:11:00:04  FIELD focus                  1.090 m -> 1.091 m
+  37.56s  00:11:00:06  FIELD focus                  1.091 m -> 1.090 m
+  37.92s  00:11:00:24  FIELD focus                  1.090 m -> 1.091 m
+  37.96s  00:11:01:01  FIELD focus                  1.091 m -> 1.090 m
+  40.28s  00:11:05:17  FIELD roll                   0.200 deg -> 0.000 deg
+  40.36s  00:11:05:21  FIELD roll                   0.000 deg -> 0.200 deg
+  40.56s  00:11:06:06  FIELD roll                   0.200 deg -> 0.400 deg
+  40.68s  00:11:06:12  FIELD roll                   0.400 deg -> 0.100 deg
+  42.36s  00:11:09:21  FIELD focus                  1.090 m -> 1.091 m
+  42.40s  00:11:09:23  FIELD focus                  1.091 m -> 1.090 m
+  45.00s  00:11:15:03  FIELD focus                  1.090 m -> 1.091 m
+  45.04s  00:11:15:05  FIELD focus                  1.091 m -> 1.090 m
+  46.60s  00:11:18:08  FIELD focus                  1.090 m -> 1.091 m
+  46.64s  00:11:18:10  FIELD focus                  1.091 m -> 1.090 m
+  47.64s  00:11:20:10  FIELD focus                  1.090 m -> 1.091 m
+  47.68s  00:11:20:12  FIELD focus                  1.091 m -> 1.090 m
+  48.68s  00:11:22:11  FIELD recording              1 -> 0
+  48.68s  00:11:22:11  REC FLAG STOPPED
+  48.96s  00:11:22:11  TIMECODE stopped
+  49.08s  00:11:22:11  FIELD tilt                   0.300 deg -> 0.700 deg
+  49.08s  00:11:22:11  FIELD roll                   0.100 deg -> 0.200 deg
+  49.40s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  49.44s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  49.48s  00:11:22:11  FIELD tilt                   0.700 deg -> 0.500 deg
+  49.56s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  49.60s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  49.60s  00:11:22:11  FIELD tilt                   0.500 deg -> 0.300 deg
+  50.12s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  50.16s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  51.28s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  51.32s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  52.36s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  52.40s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  NO SIGNAL (frame flagged)
+  signal back
+  53.87s  00:10:55:24  TIMECODE started running
+  53.87s  00:10:55:24  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=0 -> viewer would NOT send (only-with-lens)
+  53.87s  00:10:55:24  FRAME GAP 1.11 s
+  53.87s  00:10:55:24  FIELD focus                  1.090 m -> n/a
+  53.87s  00:10:55:24  FIELD iris                   2.358 -> n/a
+  53.87s  00:10:55:24  FIELD zoom                   50.000 mm -> n/a
+  54.15s  00:10:55:24  TIMECODE stopped
+  NO SIGNAL (frame flagged)
+  signal back
+  60.76s  00:11:22:11  TIMECODE started running
+  60.76s  00:11:22:11  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=1 -> viewer SENDS
+  60.76s  00:11:22:11  FRAME GAP 1.05 s
+  60.76s  00:11:22:11  FIELD focus                  n/a -> 1.090 m
+  60.76s  00:11:22:11  FIELD iris                   n/a -> 2.358
+  60.76s  00:11:22:11  FIELD zoom                   n/a -> 50.000 mm
+  60.76s  00:11:22:11  FIELD clip                   A001C052_130101_APY6 -> A000C052_130101_APY6
+  60.76s  00:11:22:11  FIELD reel                   A001APY6 -> A000APY6
+  60.76s  00:11:22:11  ARRI CLIP 'A001C052_130101_APY6' -> 'A000C052_130101_APY6'
+  61.00s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  61.04s  00:11:22:11  TIMECODE stopped
+  61.04s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  61.48s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  61.52s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  63.44s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  63.48s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  63.92s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  63.96s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  66.12s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  66.16s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  67.12s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  67.16s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  68.80s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  68.84s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  69.60s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  69.64s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  70.68s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  70.72s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  71.88s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  71.92s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  72.24s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  72.28s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  73.12s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  73.16s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  74.44s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  74.52s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  79.36s  00:11:22:11  FIELD focus                  1.090 m -> 1.091 m
+  79.40s  00:11:22:11  FIELD focus                  1.091 m -> 1.090 m
+  NO SIGNAL (frame flagged)
+  signal back
+  82.97s  00:10:55:24  TIMECODE started running
+  82.97s  00:10:55:24  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=0 -> viewer would NOT send (only-with-lens)
+  82.97s  00:10:55:24  FRAME GAP 1.13 s
+  82.97s  00:10:55:24  FIELD focus                  1.090 m -> n/a
+  82.97s  00:10:55:24  FIELD iris                   2.358 -> n/a
+  82.97s  00:10:55:24  FIELD zoom                   50.000 mm -> n/a
+  83.25s  00:10:55:24  TIMECODE stopped
+ 166.93s  00:10:55:24  FIELD tilt                   0.300 deg -> 0.500 deg
+ 167.13s  00:10:55:24  FIELD roll                   0.200 deg -> 0.000 deg
+ 167.25s  00:10:55:24  FIELD tilt                   0.500 deg -> 0.300 deg
+ 167.33s  00:10:55:24  FIELD roll                   0.000 deg -> 0.200 deg
+ 167.45s  00:10:55:24  FIELD roll                   0.200 deg -> 0.400 deg
+ 167.53s  00:10:55:24  FIELD tilt                   0.300 deg -> 0.400 deg
+ 167.65s  00:10:55:24  FIELD roll                   0.400 deg -> 0.200 deg
+ 167.73s  00:10:55:24  FIELD roll                   0.200 deg -> 0.000 deg
+ 168.05s  00:10:55:24  FIELD roll                   0.000 deg -> 0.200 deg
+ 168.17s  00:10:55:24  FIELD tilt                   0.400 deg -> 0.600 deg
+ 168.25s  00:10:55:24  FIELD tilt                   0.600 deg -> 0.300 deg
+ 168.45s  00:10:55:24  FIELD tilt                   0.300 deg -> 0.500 deg
+ 168.45s  00:10:55:24  FIELD roll                   0.200 deg -> 0.000 deg
+ 168.57s  00:10:55:24  FIELD tilt                   0.500 deg -> 0.800 deg
+ 168.57s  00:10:55:24  FIELD roll                   0.000 deg -> -0.500 deg
+ 168.69s  00:10:55:24  FIELD tilt                   0.800 deg -> 0.900 deg
+ 168.77s  00:10:55:24  FIELD tilt                   0.900 deg -> 2.300 deg
+ 168.89s  00:10:55:24  FIELD tilt                   2.300 deg -> 4.800 deg
+ 168.89s  00:10:55:24  FIELD roll                   -0.500 deg -> -1.400 deg
+ 168.97s  00:10:55:24  FIELD tilt                   4.800 deg -> 6.400 deg
+ 168.97s  00:10:55:24  FIELD roll                   -1.400 deg -> -2.500 deg
+ 169.09s  00:10:55:24  FIELD tilt                   6.400 deg -> 7.100 deg
+ 169.21s  00:10:55:24  FIELD tilt                   7.100 deg -> 7.700 deg
+ 169.29s  00:10:55:24  FIELD tilt                   7.700 deg -> 9.200 deg
+ 169.29s  00:10:55:24  FIELD roll                   -2.500 deg -> -0.900 deg
+ 169.41s  00:10:55:24  FIELD tilt                   9.200 deg -> 10.400 deg
+ 169.41s  00:10:55:24  FIELD roll                   -0.900 deg -> 0.000 deg
+ 169.49s  00:10:55:24  FIELD tilt                   10.400 deg -> 10.800 deg
+ 169.49s  00:10:55:24  FIELD roll                   0.000 deg -> 0.600 deg
+ 169.61s  00:10:55:24  FIELD tilt                   10.800 deg -> 10.600 deg
+ 169.61s  00:10:55:24  FIELD roll                   0.600 deg -> 0.200 deg
+ 169.69s  00:10:55:24  FIELD tilt                   10.600 deg -> 11.400 deg
+ 169.69s  00:10:55:24  FIELD roll                   0.200 deg -> -0.100 deg
+ 169.81s  00:10:55:24  FIELD tilt                   11.400 deg -> 13.200 deg
+ 169.81s  00:10:55:24  FIELD roll                   -0.100 deg -> -0.200 deg
+ 169.93s  00:10:55:24  FIELD tilt                   13.200 deg -> 14.300 deg
+ 170.01s  00:10:55:24  FIELD tilt                   14.300 deg -> 14.900 deg
+ 170.13s  00:10:55:24  FIELD tilt                   14.900 deg -> 15.500 deg
+ 170.21s  00:10:55:24  FIELD tilt                   15.500 deg -> 16.300 deg
+ 170.21s  00:10:55:24  FIELD roll                   -0.200 deg -> -0.400 deg
+ 170.33s  00:10:55:24  FIELD tilt                   16.300 deg -> 17.500 deg
+ 170.41s  00:10:55:24  FIELD tilt                   17.500 deg -> 18.300 deg
+ 170.53s  00:10:55:24  FIELD tilt                   18.300 deg -> 18.700 deg
+ 170.65s  00:10:55:24  FIELD tilt                   18.700 deg -> 19.300 deg
+ 170.73s  00:10:55:24  FIELD tilt                   19.300 deg -> 20.100 deg
+ 170.85s  00:10:55:24  FIELD tilt                   20.100 deg -> 20.900 deg
+ 170.93s  00:10:55:24  FIELD tilt                   20.900 deg -> 22.200 deg
+ 171.05s  00:10:55:24  FIELD tilt                   22.200 deg -> 23.000 deg
+ 171.17s  00:10:55:24  FIELD tilt                   23.000 deg -> 23.200 deg
+ 171.25s  00:10:55:24  FIELD tilt                   23.200 deg -> 23.700 deg
+ 171.37s  00:10:55:24  FIELD tilt                   23.700 deg -> 24.300 deg
+ 171.45s  00:10:55:24  FIELD tilt                   24.300 deg -> 24.900 deg
+ 171.57s  00:10:55:24  FIELD tilt                   24.900 deg -> 25.200 deg
+ 171.77s  00:10:55:24  FIELD tilt                   25.200 deg -> 24.600 deg
+ 171.89s  00:10:55:24  FIELD tilt                   24.600 deg -> 24.100 deg
+ 171.97s  00:10:55:24  FIELD tilt                   24.100 deg -> 23.900 deg
+ 172.61s  00:10:55:24  FIELD tilt                   23.900 deg -> 23.700 deg
+ 172.69s  00:10:55:24  FIELD tilt                   23.700 deg -> 23.800 deg
+ 173.01s  00:10:55:24  FIELD tilt                   23.800 deg -> 23.600 deg
+ 173.21s  00:10:55:24  FIELD tilt                   23.600 deg -> 23.800 deg
+ 174.25s  00:10:55:24  FIELD tilt                   23.800 deg -> 24.000 deg
+ 174.57s  00:10:55:24  FIELD tilt                   24.000 deg -> 23.800 deg
+ 174.77s  00:10:55:24  FIELD tilt                   23.800 deg -> 24.000 deg
+ 175.37s  00:10:55:24  FIELD tilt                   24.000 deg -> 24.100 deg
+ 175.49s  00:10:55:24  FIELD tilt                   24.100 deg -> 24.200 deg
+ 175.57s  00:10:55:24  FIELD tilt                   24.200 deg -> 23.900 deg
+ 175.69s  00:10:55:24  FIELD tilt                   23.900 deg -> 23.600 deg
+ 175.81s  00:10:55:24  FIELD tilt                   23.600 deg -> 23.400 deg
+ 175.89s  00:10:55:24  FIELD tilt                   23.400 deg -> 22.800 deg
+ 176.01s  00:10:55:24  FIELD tilt                   22.800 deg -> 20.700 deg
+ 176.09s  00:10:55:24  FIELD tilt                   20.700 deg -> 18.000 deg
+ 176.21s  00:10:55:24  FIELD tilt                   18.000 deg -> 15.200 deg
+ 176.29s  00:10:55:24  FIELD tilt                   15.200 deg -> 12.600 deg
+ 176.29s  00:10:55:24  FIELD roll                   -0.400 deg -> -0.600 deg
+ 176.41s  00:10:55:24  FIELD tilt                   12.600 deg -> 11.300 deg
+ 176.41s  00:10:55:24  FIELD roll                   -0.600 deg -> -0.500 deg
+ 176.53s  00:10:55:24  FIELD tilt                   11.300 deg -> 10.100 deg
+ 176.53s  00:10:55:24  FIELD roll                   -0.500 deg -> -0.100 deg
+ 176.61s  00:10:55:24  FIELD tilt                   10.100 deg -> 8.800 deg
+ 176.61s  00:10:55:24  FIELD roll                   -0.100 deg -> 0.100 deg
+ 176.73s  00:10:55:24  FIELD tilt                   8.800 deg -> 7.500 deg
+ 176.81s  00:10:55:24  FIELD tilt                   7.500 deg -> 6.900 deg
+ 176.93s  00:10:55:24  FIELD tilt                   6.900 deg -> 6.400 deg
+ 176.93s  00:10:55:24  FIELD roll                   0.100 deg -> 0.000 deg
+ 177.05s  00:10:55:24  FIELD tilt                   6.400 deg -> 5.500 deg
+ 177.13s  00:10:55:24  FIELD tilt                   5.500 deg -> 4.900 deg
+ 177.25s  00:10:55:24  FIELD tilt                   4.900 deg -> 4.000 deg
+ 177.33s  00:10:55:24  FIELD tilt                   4.000 deg -> 1.300 deg
+ 177.33s  00:10:55:24  FIELD roll                   0.000 deg -> 0.100 deg
+ 177.45s  00:10:55:24  FIELD tilt                   1.300 deg -> 0.300 deg
+ 177.45s  00:10:55:24  FIELD roll                   0.100 deg -> -0.200 deg
+ 177.57s  00:10:55:24  FIELD tilt                   0.300 deg -> 2.400 deg
+ 177.65s  00:10:55:24  FIELD tilt                   2.400 deg -> 3.100 deg
+ 177.65s  00:10:55:24  FIELD roll                   -0.200 deg -> 0.000 deg
+ 177.77s  00:10:55:24  FIELD tilt                   3.100 deg -> 1.900 deg
+ 177.77s  00:10:55:24  FIELD roll                   0.000 deg -> 0.500 deg
+ 177.85s  00:10:55:24  FIELD tilt                   1.900 deg -> 0.600 deg
+ 177.85s  00:10:55:24  FIELD roll                   0.500 deg -> 0.200 deg
+ 177.97s  00:10:55:24  FIELD tilt                   0.600 deg -> 0.400 deg
+ 178.05s  00:10:55:24  FIELD tilt                   0.400 deg -> 0.600 deg
+ 178.17s  00:10:55:24  FIELD tilt                   0.600 deg -> 0.400 deg
+ 178.37s  00:10:55:24  FIELD tilt                   0.400 deg -> 1.400 deg
+ 178.37s  00:10:55:24  FIELD roll                   0.200 deg -> 0.500 deg
+ 178.49s  00:10:55:24  FIELD tilt                   1.400 deg -> 0.800 deg
+ 178.49s  00:10:55:24  FIELD roll                   0.500 deg -> 0.200 deg
+ 178.57s  00:10:55:24  FIELD tilt                   0.800 deg -> -3.000 deg
+ 178.57s  00:10:55:24  FIELD roll                   0.200 deg -> -0.100 deg
+ 178.69s  00:10:55:24  FIELD tilt                   -3.000 deg -> -7.800 deg
+ 178.69s  00:10:55:24  FIELD roll                   -0.100 deg -> -0.600 deg
+ 178.77s  00:10:55:24  FIELD tilt                   -7.800 deg -> -6.600 deg
+ 178.77s  00:10:55:24  FIELD roll                   -0.600 deg -> 0.600 deg
+ 178.89s  00:10:55:24  FIELD tilt                   -6.600 deg -> -4.600 deg
+ 178.89s  00:10:55:24  FIELD roll                   0.600 deg -> 1.400 deg
+ 179.01s  00:10:55:24  FIELD tilt                   -4.600 deg -> -4.800 deg
+ 179.01s  00:10:55:24  FIELD roll                   1.400 deg -> 0.800 deg
+ 179.09s  00:10:55:24  FIELD tilt                   -4.800 deg -> -6.500 deg
+ 179.09s  00:10:55:24  FIELD roll                   0.800 deg -> -0.200 deg
+ 179.21s  00:10:55:24  FIELD tilt                   -6.500 deg -> -9.200 deg
+ 179.29s  00:10:55:24  FIELD tilt                   -9.200 deg -> -10.600 deg
+ 179.29s  00:10:55:24  FIELD roll                   -0.200 deg -> 0.300 deg
+ 179.41s  00:10:55:24  FIELD tilt                   -10.600 deg -> -10.400 deg
+ 179.41s  00:10:55:24  FIELD roll                   0.300 deg -> 0.400 deg
+ 179.53s  00:10:55:24  FIELD tilt                   -10.400 deg -> -9.800 deg
+ 179.61s  00:10:55:24  FIELD tilt                   -9.800 deg -> -10.500 deg
+ 179.73s  00:10:55:24  FIELD tilt                   -10.500 deg -> -10.700 deg
+ 179.73s  00:10:55:24  FIELD roll                   0.400 deg -> 0.500 deg
+ 179.81s  00:10:55:24  FIELD tilt                   -10.700 deg -> -10.100 deg
+ 179.93s  00:10:55:24  FIELD roll                   0.500 deg -> 0.200 deg
+ 180.01s  00:10:55:24  FIELD tilt                   -10.100 deg -> -10.700 deg
+ 180.13s  00:10:55:24  FIELD tilt                   -10.700 deg -> -11.000 deg
+ 180.13s  00:10:55:24  FIELD roll                   0.200 deg -> 0.400 deg
+ 180.25s  00:10:55:24  FIELD tilt                   -11.000 deg -> -11.300 deg
+ 180.33s  00:10:55:24  FIELD tilt                   -11.300 deg -> -11.700 deg
+ 180.45s  00:10:55:24  FIELD tilt                   -11.700 deg -> -12.600 deg
+ 180.53s  00:10:55:24  FIELD tilt                   -12.600 deg -> -13.500 deg
+ 180.65s  00:10:55:24  FIELD tilt                   -13.500 deg -> -13.900 deg
+ 180.73s  00:10:55:24  FIELD tilt                   -13.900 deg -> -14.100 deg
+ 180.85s  00:10:55:24  FIELD tilt                   -14.100 deg -> -14.200 deg
+ 181.05s  00:10:55:24  FIELD tilt                   -14.200 deg -> -14.400 deg
+ 181.17s  00:10:55:24  FIELD tilt                   -14.400 deg -> -14.900 deg
+ 181.25s  00:10:55:24  FIELD tilt                   -14.900 deg -> -15.300 deg
+ 181.25s  00:10:55:24  FIELD roll                   0.400 deg -> 0.500 deg
+ 181.37s  00:10:55:24  FIELD tilt                   -15.300 deg -> -15.500 deg
+ 181.57s  00:10:55:24  FIELD tilt                   -15.500 deg -> -15.700 deg
+ 181.69s  00:10:55:24  FIELD tilt                   -15.700 deg -> -16.100 deg
+ 181.77s  00:10:55:24  FIELD tilt                   -16.100 deg -> -16.800 deg
+ 181.89s  00:10:55:24  FIELD tilt                   -16.800 deg -> -17.000 deg
+ 182.21s  00:10:55:24  FIELD tilt                   -17.000 deg -> -16.700 deg
+ 183.13s  00:10:55:24  FIELD tilt                   -16.700 deg -> -16.900 deg
+ 184.69s  00:10:55:24  FIELD tilt                   -16.900 deg -> -17.100 deg
+ 186.41s  00:10:55:24  FIELD tilt                   -17.100 deg -> -17.300 deg
+ 187.13s  00:10:55:24  FIELD tilt                   -17.300 deg -> -17.400 deg
+ 187.65s  00:10:55:24  FIELD tilt                   -17.400 deg -> -17.500 deg
+ 188.89s  00:10:55:24  FIELD tilt                   -17.500 deg -> -17.600 deg
+ 189.41s  00:10:55:24  FIELD tilt                   -17.600 deg -> -17.800 deg
+ 190.25s  00:10:55:24  FIELD tilt                   -17.800 deg -> -18.000 deg
+ 190.37s  00:10:55:24  FIELD roll                   0.500 deg -> 0.600 deg
+ 190.65s  00:10:55:24  FIELD tilt                   -18.000 deg -> -17.700 deg
+ 190.77s  00:10:55:24  FIELD tilt                   -17.700 deg -> -17.900 deg
+ 191.57s  00:10:55:24  FIELD tilt                   -17.900 deg -> -18.200 deg
+ 191.81s  00:10:55:24  FIELD tilt                   -18.200 deg -> -17.900 deg
+ 191.89s  00:10:55:24  FIELD tilt                   -17.900 deg -> -16.400 deg
+ 192.01s  00:10:55:24  FIELD tilt                   -16.400 deg -> -13.400 deg
+ 192.09s  00:10:55:24  FIELD tilt                   -13.400 deg -> -10.700 deg
+ 192.09s  00:10:55:24  FIELD roll                   0.600 deg -> 0.400 deg
+ 192.21s  00:10:55:24  FIELD tilt                   -10.700 deg -> -8.600 deg
+ 192.29s  00:10:55:24  FIELD tilt                   -8.600 deg -> -7.000 deg
+ 192.41s  00:10:55:24  FIELD tilt                   -7.000 deg -> -5.600 deg
+ 192.53s  00:10:55:24  FIELD tilt                   -5.600 deg -> -3.600 deg
+ 192.61s  00:10:55:24  FIELD tilt                   -3.600 deg -> -2.100 deg
+ 192.73s  00:10:55:24  FIELD tilt                   -2.100 deg -> -1.800 deg
+ 192.81s  00:10:55:24  FIELD tilt                   -1.800 deg -> -0.800 deg
+ 192.81s  00:10:55:24  FIELD roll                   0.400 deg -> 0.700 deg
+ 192.93s  00:10:55:24  FIELD tilt                   -0.800 deg -> 0.300 deg
+ 192.93s  00:10:55:24  FIELD roll                   0.700 deg -> 0.300 deg
+ 193.05s  00:10:55:24  FIELD tilt                   0.300 deg -> 0.600 deg
+ 193.05s  00:10:55:24  FIELD roll                   0.300 deg -> -0.300 deg
+ 193.13s  00:10:55:24  FIELD tilt                   0.600 deg -> 0.000 deg
+ 193.13s  00:10:55:24  FIELD roll                   -0.300 deg -> -0.500 deg
+ 193.25s  00:10:55:24  FIELD roll                   -0.500 deg -> -0.100 deg
+ 193.33s  00:10:55:24  FIELD tilt                   0.000 deg -> 0.200 deg
+ 193.33s  00:10:55:24  FIELD roll                   -0.100 deg -> 0.300 deg
+ 193.45s  00:10:55:24  FIELD tilt                   0.200 deg -> 0.300 deg
+ 193.45s  00:10:55:24  FIELD roll                   0.300 deg -> 0.100 deg
+ 193.77s  00:10:55:24  FIELD roll                   0.100 deg -> 0.300 deg
