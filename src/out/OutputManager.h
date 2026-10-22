@@ -6,8 +6,6 @@
 enum class SensorOverride { Off, WhenMissing, Always };
 
 struct OutputSettings {
-    bool onlyWithLens = true;  // skip frames with no focus / iris / zoom
-
     // Manual sensor area, for cameras / modes that don't report or can't be derived (or to force a value).
     SensorOverride sensorOverride = SensorOverride::WhenMissing;
     double manualSensorWidthMm = 0, manualSensorHeightMm = 0;  // 0 = not set
@@ -42,6 +40,8 @@ public:
         CameraSample last;
         bool hasLast = false;
         uint64_t freedSent = 0, oscSent = 0, otioSent = 0, sendErrors = 0;
+        std::string lastSendError;     // e.g. "OSC: sendto failed: No route to host"
+        double lastSendErrorTime = 0;  // capture clock (s) of that error
         std::string freedError, oscError, otioError;
         bool freedOpen = false, oscOpen = false, otioOpen = false;
         std::string otioLastJson;  // most recent OpenTrackIO payload, for the UI
@@ -63,4 +63,5 @@ private:
     uint32_t m_otioSequence = 0;
     double m_otioLastStatic = -1e9;
     int m_rateNum = 25, m_rateDen = 1;
+    void noteError(const char* what, const UdpSender& sock, double t);
 };

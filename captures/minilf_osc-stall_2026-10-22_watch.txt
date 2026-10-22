@@ -1,0 +1,76 @@
+Device: DeckLink 8K Pro (4)
+  VANC requires 10-bit YUV frames          no
+  HANC capture supported                   yes
+  HANC needs DID/SDID filters              yes
+  HANC filter 1 = 52/4D                    set
+Capturing for 150 s... (watching for changes)
+
+  NO SIGNAL (frame flagged)
+  signal back
+   0.00s  23:46:59:10  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=1 -> viewer SENDS
+   0.00s  23:46:59:10  ARRI CLIP '' -> 'A001C049_130101_APY6'
+   0.00s  23:46:59:10  REC FLAG STOPPED
+Signal
+  Detected mode                            2160p25 (YUV 4:2:2)
+  Frames                                   3747 (1 flagged no-signal)
+  Video input locked                       yes
+  Ancillary input locked                   yes
+
+ANC packets via IDeckLinkVideoFrameAncillaryPackets (what the viewer reads)
+  frames with >=1 packet: 3746
+  DID 44 SDID 04  x67428  VANC lines: 9 10 11
+  DID 52 SDID 4D  x3746   HANC lines: 9
+
+Timecode, each source queried separately
+  RP188 VITC1          3746 frames, last 23:49:29:05
+  RP188 VITC2          -
+  RP188 LTC            3746 frames, last 23:49:29:05
+  RP188 HFR            -
+  RP188 Any            3746 frames, last 23:49:29:05
+  VITC (SD)            -
+  VITC field 2 (SD)    -
+
+Raw VANC lines via IDeckLinkVideoFrameAncillary
+  zero = buffer all zeros (driver likely not capturing VANC); black = real empty blanking
+  line  captured   zero  black  with-ADF  DID/SDID found
+     1      3746      0   3746         0 
+     2      3746      0   3746         0 
+     3      3746      0   3746         0 
+     4      3746      0   3746         0 
+     5      3746      0   3746         0 
+     6      3746      0   3746         0 
+     7      3746      0   3746         0 
+     8      3746      0   3746         0 
+     9      3746      0      0         0 
+    10      3746      0      0         0 
+    11      3746      0      0         0 
+    12      3746      0   3746         0 
+    13      3746      0   3746         0 
+    14      3746      0   3746         0 
+    15      3746      0   3746         0 
+    16      3746      0   3746         0 
+    17      3746      0   3746         0 
+    18      3746      0   3746         0 
+    19      3746      0   3746         0 
+    20      3746      0   3746         0 
+    21      3746      0   3746         0 
+    22      3746      0   3746         0 
+    23      3746      0   3746         0 
+    24      3746      0   3746         0 
+    25      3746      0   3746         0 
+    26      3746      0   3746         0 
+    27      3746      0   3746         0 
+    28      3746      0   3746         0 
+    29      3746      0   3746         0 
+    30      3746      0   3746         0 
+    31      3746      0   3746         0 
+    32      3746      0   3746         0 
+    33      3746      0   3746         0 
+    34      3746      0   3746         0 
+    35      3746      0   3746         0 
+    36      3746      0   3746         0 
+    37      3746      0   3746         0 
+    38      3746      0   3746         0 
+    39      3746      0   3746         0 
+    40      3746      0   3746         0 
+    41      3746      0   3746         0 

@@ -1,4 +1,5 @@
 #include "out/UdpSender.h"
+#include <cerrno>
 #include <cstring>
 
 #ifdef _WIN32
@@ -69,5 +70,11 @@ bool UdpSender::send(const uint8_t* data, size_t size) {
     if (m_sock < 0) return false;
     const auto n = sendto(static_cast<sock_t>(m_sock), reinterpret_cast<const char*>(data), int(size), 0,
                           reinterpret_cast<const sockaddr*>(m_addr), sizeof(sockaddr_in));
-    return n == static_cast<decltype(n)>(size);
+    if (n == static_cast<decltype(n)>(size)) return true;
+#ifdef _WIN32
+    m_lastError = "sendto failed, WSA error " + std::to_string(WSAGetLastError());
+#else
+    m_lastError = std::string("sendto failed: ") + std::strerror(errno);
+#endif
+    return false;
 }

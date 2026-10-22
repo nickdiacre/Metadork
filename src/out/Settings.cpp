@@ -54,7 +54,6 @@ std::string settingsToString(const AppSettings& s) {
       << "rec_from_timecode=" << b(s.recFromTc) << "\n"
       << "log_path=" << s.logPath << "\n"
       << "log_raw=" << b(s.logRaw) << "\n"
-      << "only_with_lens=" << b(o.onlyWithLens) << "\n"
       << "sensor_override=" << int(o.sensorOverride) << "\n"
       << "manual_sensor_width_mm=" << d(o.manualSensorWidthMm) << "\n"
       << "manual_sensor_height_mm=" << d(o.manualSensorHeightMm) << "\n"
@@ -116,7 +115,6 @@ void settingsFromString(const std::string& text, AppSettings& s) {
     boolean("rec_from_timecode", s.recFromTc);
     str("log_path", s.logPath);
     boolean("log_raw", s.logRaw);
-    boolean("only_with_lens", o.onlyWithLens);
     int so = int(o.sensorOverride);
     integer("sensor_override", so);
     o.sensorOverride = SensorOverride(std::clamp(so, 0, 2));

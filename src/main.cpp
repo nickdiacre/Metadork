@@ -24,6 +24,10 @@
 #endif
 
 #include <algorithm>
+#ifdef __APPLE__
+#include <objc/message.h>
+#include <objc/runtime.h>
+#endif
 #include <atomic>
 #include <csignal>
 #include <cmath>
@@ -619,9 +623,6 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
     bool applied = false;
     const OutputManager::Status st = out.status();
     auto& p = ui.pending;
-    ui.dirty |= ImGui::Checkbox("Only send when lens data is present", &p.onlyWithLens);
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Applies to FreeD, OSC and OpenTrackIO.");
-    ImGui::SameLine();
     ImGui::BeginDisabled(!ui.dirty);
     if (ImGui::Button("Apply")) {
         p.freedHost = ui.freedHost;
@@ -634,7 +635,9 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
     }
     ImGui::EndDisabled();
     if (ui.dirty) { ImGui::SameLine(); ImGui::TextColored(kAmber, "Unapplied changes"); }
-    if (st.sendErrors) { ImGui::SameLine(); ImGui::TextDisabled("%llu send errors", (unsigned long long)st.sendErrors); }
+    if (st.sendErrors) {
+        ImGui::TextColored(kRed, "%llu send errors, last: %s", (unsigned long long)st.sendErrors, st.lastSendError.c_str());
+    }
 
     if (ImGui::CollapsingHeader("Sensor size")) {
         const CameraSample& last = st.last;
@@ -674,6 +677,25 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
     return applied;
 }
 
+#ifdef __APPLE__
+// Keep macOS from App-Napping the viewer (throttling it when its window is hidden or idle), which stalled live
+// output. Equivalent to [[NSProcessInfo processInfo] beginActivityWithOptions:UserInitiated|LatencyCritical ...].
+void preventAppNap() {
+    using MsgId = id (*)(id, SEL);
+    using MsgStr = id (*)(id, SEL, const char*);
+    using MsgBegin = id (*)(id, SEL, unsigned long long, id);
+    id info = reinterpret_cast<MsgId>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSProcessInfo")),
+                                                   sel_registerName("processInfo"));
+    id reason = reinterpret_cast<MsgStr>(objc_msgSend)(reinterpret_cast<id>(objc_getClass("NSString")),
+                                                      sel_registerName("stringWithUTF8String:"), "Live SDI metadata output");
+    const unsigned long long userInitiated = 0x00FFFFFFULL | (1ULL << 20);  // NSActivityUserInitiated
+    const unsigned long long latencyCritical = 0xFF00000000ULL;             // NSActivityLatencyCritical
+    id activity = reinterpret_cast<MsgBegin>(objc_msgSend)(info, sel_registerName("beginActivityWithOptions:reason:"),
+                                                          userInitiated | latencyCritical, reason);
+    reinterpret_cast<MsgId>(objc_msgSend)(activity, sel_registerName("retain"));  // held for the app's lifetime
+}
+#endif
+
 std::atomic<bool> g_quit{false};
 void onSignal(int) { g_quit = true; }  // Ctrl-C in the terminal: leave the loop normally so settings are saved
 
@@ -681,6 +703,9 @@ void onSignal(int) { g_quit = true; }  // Ctrl-C in the terminal: leave the loop
 
 int main() {
     dlp::initialise();
+#ifdef __APPLE__
+    preventAppNap();
+#endif
     std::signal(SIGINT, onSignal);
     std::signal(SIGTERM, onSignal);
 

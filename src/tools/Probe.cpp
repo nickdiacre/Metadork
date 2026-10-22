@@ -17,6 +17,7 @@
 
 #include "anc/AncRegistry.h"
 #include "anc/MetadataProcessor.h"
+#include "out/CameraSample.h"
 #include "capture/DeckLinkPlatform.h"
 #include <algorithm>
 #include <chrono>
@@ -166,7 +167,14 @@ public:
         if (!f) return S_OK;
         std::lock_guard<std::mutex> l(m_st.mtx);
         ++m_st.frames;
-        if (f->GetFlags() & bmdFrameHasNoInputSource) { ++m_st.noSignalFrames; return S_OK; }
+        if (f->GetFlags() & bmdFrameHasNoInputSource) {
+            ++m_st.noSignalFrames;
+            if (gWatch && !m_noSignal) { std::printf("  NO SIGNAL (frame flagged)\n"); std::fflush(stdout); }
+            m_noSignal = true;
+            return S_OK;
+        }
+        if (gWatch && m_noSignal) { std::printf("  signal back\n"); std::fflush(stdout); }
+        m_noSignal = false;
 
         // 1. Packet API
         IDeckLinkVideoFrameAncillaryPackets* anc = nullptr;
@@ -299,6 +307,22 @@ private:
             std::printf("%s  CLIP  '%s' -> '%s'\n", when.c_str(), m_clip.c_str(), md.sonyClip.c_str());
             m_clip = md.sonyClip;
         }
+        // Output gating diagnostics: would the viewer send this frame?
+        {
+            const CameraSample cs = sampleFrom(md);
+            const bool lens = cs.anyLens();
+            const bool arriComplete = md.klv.empty() || md.klv[0].complete;
+            if (lens != m_lens || md.hasArri != m_hasArri || arriComplete != m_arriComplete || m_frames == 0)
+                std::printf("%s  STATE arri=%d klv_complete=%d (%zu klv, %zu packets) lens_data=%d -> viewer %s\n", when.c_str(),
+                            md.hasArri, arriComplete, md.klv.size(), md.packets.size(), lens,
+                            lens ? "SENDS" : "would NOT send (only-with-lens)");
+            m_lens = lens;
+            m_hasArri = md.hasArri;
+            m_arriComplete = arriComplete;
+            if (m_lastFrameT > 0 && t - m_lastFrameT > 0.2)
+                std::printf("%s  FRAME GAP %.2f s\n", when.c_str(), t - m_lastFrameT);
+            m_lastFrameT = t;
+        }
         if (md.recordingName != m_recName) {
             std::printf("%s  RECORDING NAME -> '%s'\n", when.c_str(), md.recordingName.c_str());
             m_recName = md.recordingName;
@@ -340,6 +364,8 @@ private:
     std::map<uint32_t, std::pair<std::vector<uint8_t>, std::string>> m_prev;
     std::string m_clip;
     std::string m_recName, m_arriClip;
+    bool m_lens = false, m_hasArri = false, m_arriComplete = true, m_noSignal = false;
+    double m_lastFrameT = -1;
     RecState m_rec = RecState::Unknown;
     bool m_tcRunning = false;
     uint64_t m_frames = 0;

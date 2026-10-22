@@ -43,23 +43,31 @@ void OutputManager::setVideoRate(int num, int den) {
     if (num > 0 && den > 0) { m_rateNum = num; m_rateDen = den; }
 }
 
+void OutputManager::noteError(const char* what, const UdpSender& sock, double t) {
+    ++m_status.sendErrors;
+    m_status.lastSendError = std::string(what) + ": " + sock.lastError();
+    m_status.lastSendErrorTime = t;
+}
+
 void OutputManager::onFrame(const FrameMetadata& md) {
     CameraSample s = sampleFrom(md);
     std::lock_guard<std::mutex> l(m_mtx);
     applySensorOverride(s, m_settings);
     m_status.last = s;
     m_status.hasLast = true;
-    if (md.noSignal || (m_settings.onlyWithLens && !s.anyLens())) return;
+    // Always send while there is a signal: the outputs carry far more than lens data (timecode, record state,
+    // recording name, camera settings ...).
+    if (md.noSignal) return;
 
     if (m_freed.isOpen()) {
         const auto pkt = buildFreeD(s, m_settings.freed);
         if (m_freed.send(pkt.data(), pkt.size())) ++m_status.freedSent;
-        else ++m_status.sendErrors;
+        else noteError("FreeD", m_freed, md.hostTime);
     }
     if (m_osc.isOpen()) {
         for (const auto& d : buildOsc(s, m_settings.osc)) {
             if (m_osc.send(d.data(), d.size())) ++m_status.oscSent;
-            else ++m_status.sendErrors;
+            else noteError("OSC", m_osc, md.hostTime);
         }
     }
     if (m_otio.isOpen()) {
@@ -74,7 +82,7 @@ void OutputManager::onFrame(const FrameMetadata& md) {
         std::string json = buildOpenTrackIOJson(s, m_settings.otio, f);
         for (const auto& pkt : openTrackIOPackets(json, uint16_t(m_otioSequence))) {
             if (m_otio.send(pkt.data(), pkt.size())) ++m_status.otioSent;
-            else ++m_status.sendErrors;
+            else noteError("OpenTrackIO", m_otio, md.hostTime);
         }
         ++m_otioSequence;
         m_status.otioLastJson = std::move(json);
