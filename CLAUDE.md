@@ -174,8 +174,8 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    7F/8415 = CAMERA ROLL, same units, + = clockwise seen from behind the camera (right side down). Verified hand-held:
    level 0.0, ~20 deg clockwise +17.7, anticlockwise -16.1 / -15.8, with tilt unchanged. Both go to FreeD, OSC and
    (opt-in) the OpenTrackIO transform. Neither field changes with pan; no pan source exists.
-   Receivers differ: Stage Precision needs tilt AND roll inverted (seen on the Mini LF over OSC, 2026-10-22; but the
-   VENICE 2 in SP needed only roll inverted, same day, although both decodes are + = up per inclinometer: re-check ARRI tilt in SP), so each
+   Receivers differ: Stage Precision needs ROLL inverted, tilt not (checked on VENICE 2 and Mini LF over OSC, 2026-10-22;
+   an earlier Mini LF note saying tilt too was wrong). Both cameras decode + = tilt up, + = roll clockwise from behind, so each
    output (FreeD / OSC / OpenTrackIO) has its own invert pan / tilt / roll flags (`OrientationSigns`), saved in settings.
 3. (resolved) ARRI little-endian confirmed on a Mini LF.
 4. Hardware so far: UltraStudio Express Recorder 3G on macOS (SDK 16.0) captures VANC fine; Sony BURANO decoded.
