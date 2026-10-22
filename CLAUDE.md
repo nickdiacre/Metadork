@@ -14,6 +14,10 @@ and Blackmagic URSA.
 - SP support for decoding lens data from SDI ANC was not confirmed; worth asking SP support.
 - The camera only embeds FIZ it knows about: LDS or /i lenses, or LBUS/LCS motors/encoders. A Preston
   driving a non-smart lens does NOT put FIZ into the SDI.
+- Exception for Sony VENICE / VENICE 2: ARRI's Cable CAM (7p) - ENG (12p) (K2.0015759) from an ARRI RIA-1 / cforce RF
+  into the VENICE's 12-pin Hirose LENS port injects lens metadata from the ARRI motors' lens map (ARRI RIA-1 cable guide;
+  per the vendor listings it needs separate power for the lens functions). Untested here: check whether it then shows
+  in RDD 18 (8001 etc.). The Wooden Camera LPL mount + DCS LDT is the other route.
 - Alternatives considered: stYpe RedSpy lens encoders (RedSpy natively reads only Canon/Fujinon digital
   lenses or its own encoders; no Preston input), DCS LDT, the ARRI Live Link plugin (network, not SDI),
   and Unreal's Preston MDR plugin (needs a serial cable).
