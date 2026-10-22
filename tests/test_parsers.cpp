@@ -740,10 +740,10 @@ int main() {
         RedHancDecoder d;
         CHECK(!d.update(0x16AC0034).valid);                     // block 0 only
         const RedHancInfo& a = d.update(0x63010074);            // + block 1
-        CHECK(a.valid && !a.recording && a.clipName() == "R003_C007_102263" && a.reelName() == "R003" && a.position == 0);
+        CHECK(a.valid && !a.recording && a.clipName() == "R003_A007_102263" && a.reelName() == "R003" && a.position == 0);
         CHECK(d.update(0x16AC003C).recording);                  // RS set while recording
-        CHECK(d.update(0x7E41008C).clipName() == "R003_C008_1022NE");
-        CHECK(d.update(0xB0510094).clipName() == "R003_C009_1022RG" && !d.update(0x16AC0034).recording);
+        CHECK(d.update(0x7E41008C).clipName() == "R003_A008_1022NE");
+        CHECK(d.update(0xB0510094).clipName() == "R003_A009_1022RG" && !d.update(0x16AC0034).recording);
         CHECK(!RedHancDecoder().update(0).valid);
         RedHancDecoder z; z.update(0); CHECK(!z.update(0x00010000).valid);  // zero user bits never look like RED
 
@@ -754,7 +754,7 @@ int main() {
         for (int i = 0; i < 6; ++i) { t.userBits = seq[i]; last = red.process({}, t, false, i * 0.04); }
         CHECK(last.rec == RecState::Recording && last.recSource == "RED record flag (timecode user bits)");
         const MetaRecord r = buildRecord(last);
-        CHECK(r.kind == CameraKind::Red && r.str(Field::Clip) == "R003_C007_102263" && r.str(Field::CameraIndex) == "R");
+        CHECK(r.kind == CameraKind::Red && r.str(Field::Clip) == "R003_A007_102263" && r.str(Field::CameraIndex) == "R");
     }
 
     std::printf(g_fail ? "%d FAILED\n" : "All parser tests passed\n", g_fail);

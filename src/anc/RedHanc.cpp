@@ -21,7 +21,7 @@ std::string RedHancInfo::reelName() const {
 
 std::string RedHancInfo::clipName() const {
     char b[32];
-    std::snprintf(b, sizeof b, "%c%03d_C%03d_%02d%02d%s", cameraLetter, reel, clip, month, day, wildcard.c_str());
+    std::snprintf(b, sizeof b, "%c%03d_%c%03d_%02d%02d%s", cameraLetter, reel, positionLetter, clip, month, day, wildcard.c_str());
     return b;
 }
 

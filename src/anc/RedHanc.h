@@ -9,7 +9,9 @@
 //   block 0:     reel = BG4 BG3 BG2 (BCD); month = BG6; day = BG7 + bit 18 (DN) x16; camera letter = BG8 + bit 19 (CL) x16
 //   block 1:     clip = BG4 BG3 BG2 (BCD); wildcard 1 = BG8 + bits 23-22 x16, wildcard 2 = BG7 + bits 21-20 x16
 //                (0-9 then A-Z); camera position = bits 19-18 (0 centre, 1 left, 2 right)
-// Clip name: <letter><reel>_C<clip>_<MMDD><wildcard 1><wildcard 2>, e.g. R003_C007_102263.
+// Clip name: <letter><reel>_<position><clip>_<MMDD><wildcard 1><wildcard 2>. RED's note shows a fixed "C" in place of
+// <position>; the V-RAPTOR uses its Camera Position letter (Slate menu, e.g. R003_A012), which is NOT in the user bits
+// (changing it only regenerates the wildcard), so it is a setting (default A).
 // While stopped the clip fields show the NEXT clip (updated ~1.5 s after REC off).
 #include <cstdint>
 #include <string>
@@ -21,6 +23,7 @@ struct RedHancInfo {
     int reel = 0, clip = 0, month = 0, day = 0;
     std::string wildcard;    // 2 chars
     int position = 0;        // 0 centre, 1 left, 2 right (3D rigs)
+    char positionLetter = 'A';  // from settings, see above
     std::string clipName() const;
     std::string reelName() const;  // e.g. R003
 };
@@ -30,6 +33,7 @@ public:
     // Feed one frame's timecode user bits; returns the current state.
     const RedHancInfo& update(uint32_t userBits);
     void reset() { *this = RedHancDecoder(); }
+    void setPositionLetter(char c) { m_info.positionLetter = c; }
 
 private:
     RedHancInfo m_info;

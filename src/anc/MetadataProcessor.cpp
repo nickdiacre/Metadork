@@ -62,6 +62,7 @@ FrameMetadata MetadataProcessor::process(std::vector<AncPacket>&& packets, const
         }
     }
     // RED: clip name + RS record flag in the timecode user bits (see RedHanc.h); valid from the first two frames.
+    m_red.setPositionLetter(m_redPosition);
     if (tc.valid && !noSignal) md.red = m_red.update(tc.userBits);
     if (md.rec == RecState::Unknown && md.red.valid) {
         md.rec = md.red.recording ? RecState::Recording : RecState::Stopped;

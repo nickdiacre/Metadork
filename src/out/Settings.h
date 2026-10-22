@@ -8,6 +8,7 @@ struct AppSettings {
     std::string logPath = "sdi_metadata_log.jsonl";
     bool logRaw = true;
     bool recFromTc = true;
+    char redPosition = 'A';  // RED Camera Position letter used in clip names (not sent over SDI)
     std::string deviceName;   // last used input; matched by name on the next launch
     long long inputConnection = 1;  // BMDVideoConnection (1 = SDI)
     float panelWidth = 560.0f;

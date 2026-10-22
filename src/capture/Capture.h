@@ -123,6 +123,7 @@ public:
     void stop();
     InputStatus status() const;
     void setRecFromTimecode(bool on) { m_processor.setRecFromTimecode(on); }
+    void setRedPositionLetter(char c) { m_processor.setRedPositionLetter(c); }
 
     // Returns the newest frame for preview (caller must Release), or nullptr if none new.
     IDeckLinkVideoInputFrame* takePreviewFrame();

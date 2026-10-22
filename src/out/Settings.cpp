@@ -1,4 +1,5 @@
 #include "out/Settings.h"
+#include <cctype>
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
@@ -52,6 +53,7 @@ std::string settingsToString(const AppSettings& s) {
       << "panel_width=" << d(s.panelWidth) << "\n"
       << "show_video=" << b(s.showVideo) << "\n"
       << "rec_from_timecode=" << b(s.recFromTc) << "\n"
+      << "red_position=" << s.redPosition << "\n"
       << "log_path=" << s.logPath << "\n"
       << "log_raw=" << b(s.logRaw) << "\n"
       << "sensor_override=" << int(o.sensorOverride) << "\n"
@@ -113,6 +115,8 @@ void settingsFromString(const std::string& text, AppSettings& s) {
     s.panelWidth = float(pw);
     boolean("show_video", s.showVideo);
     boolean("rec_from_timecode", s.recFromTc);
+    if (auto it = kv.find("red_position"); it != kv.end() && it->second.size() == 1 && std::isalpha((unsigned char)it->second[0]))
+        s.redPosition = char(std::toupper((unsigned char)it->second[0]));
     str("log_path", s.logPath);
     boolean("log_raw", s.logRaw);
     int so = int(o.sensorOverride);

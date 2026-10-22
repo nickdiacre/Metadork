@@ -761,6 +761,7 @@ int main() {
     std::snprintf(logPath, sizeof logPath, "%s", app.logPath.c_str());
     bool logRaw = app.logRaw;
     bool recFromTc = app.recFromTc;
+    char redPosition[2] = {app.redPosition, 0};
     float panelW = app.panelWidth;
     preview.enabled = app.showVideo;
 
@@ -769,6 +770,7 @@ int main() {
         app.logPath = logPath;
         app.logRaw = logRaw;
         app.recFromTc = recFromTc;
+        app.redPosition = redPosition[0] ? redPosition[0] : 'A';
         if (deviceIndex < int(devices->size())) app.deviceName = devices->ports()[size_t(deviceIndex)].name;
         app.inputConnection = inputConnection;
         app.panelWidth = panelW;
@@ -974,6 +976,7 @@ int main() {
                     shared.reset();
                     session = CaptureSession::create(devices->device(size_t(deviceIndex)), handler);
                     session->setRecFromTimecode(recFromTc);
+                    session->setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
                     if (!session->start(lastError, inputConnection)) { session->Release(); session = nullptr; }
                     else lastError.clear();
                     save();
@@ -991,6 +994,15 @@ int main() {
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Used when the camera sends no record flag (Sony), and only after timecode has been\n"
                                   "seen stopped (proving Rec Run TC). In Free Run it is never used.");
+            ImGui::SetNextItemWidth(ImGui::GetFontSize() * 2.0f);
+            if (ImGui::InputText("RED camera position letter", redPosition, sizeof redPosition,
+                                 ImGuiInputTextFlags_CharsUppercase | ImGuiInputTextFlags_CharsNoBlank)) {
+                if (session) session->setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
+                save();
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("RED clip names use the Camera Position letter (Slate menu), e.g. R003_A012.\n"
+                                  "The camera doesn't send it over SDI, so set it to match the camera.");
         }
 
         ImGui::Separator();

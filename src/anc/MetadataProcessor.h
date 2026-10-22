@@ -74,6 +74,7 @@ public:
     //     REC stopped (seen on BURANO);
     //  3. otherwise Unknown.
     void setRecFromTimecode(bool on) { m_recFromTc = on; }
+    void setRedPositionLetter(char c) { m_redPosition = c; }  // RED clip name letter (Camera Position)
 
 private:
     uint64_t m_index = 0;
@@ -86,5 +87,6 @@ private:
     RedHancDecoder m_red;
     bool m_tcTriggerSeen = false;  // camera has set the TC recording trigger at least once
     std::atomic<bool> m_recFromTc{true};
+    std::atomic<char> m_redPosition{'A'};
     TakeTracker m_take;
 };
