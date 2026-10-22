@@ -155,6 +155,8 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    Look (`captures/venice2_V2-9-look_2026-10-22_raw.txt`): 7F/E115 = look applied to the SDI output (1/0). 02/3210 and 3219
    follow the SDI picture: BT.709 transfer + primaries with the look on, Sony S-Log3 / S-Gamut3.Cine ULs without; 02/8120
    = 06 / 02 alongside. 7F/E109 (= E113) is the look name ("07_TY_3 STRIP_JP.cube" -> "s709"). No ASC CDL on this camera.
+   Stage Precision naming (2026-10-22): VENICE 2 takes named correctly in SP via OSC /camera/recording_name (and /clip).
+   Use recording_name: /clip can flip to the next clip number on the REC-off frame in free-run TC.
    BURANO sends no record flag in RDD 18 (verified over 4 REC cycles,
    `captures/burano_rec_toggle_2026-10-06.txt`). With the camera in rec-run TC, RP188 TC runs only while recording;
    The 44/04 clip name is the clip being recorded while rolling, and the NEXT clip number once stopped; its 2-char
