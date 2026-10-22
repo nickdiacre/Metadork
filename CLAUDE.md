@@ -152,6 +152,9 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    diagonal crop-factor equivalent. E10F (SDI image area) changes with it. No recording-resolution tag found.
    Squeeze 2.0x confirmed 2026-10-22 (`captures/venice2_V2-6-squeeze_2026-10-22_raw.txt`: E10F 1920x640 on a 3:2 area);
    no separate SDI-output desqueeze display setting was found on this camera.
+   Look (`captures/venice2_V2-9-look_2026-10-22_raw.txt`): 7F/E115 = look applied to the SDI output (1/0). 02/3210 and 3219
+   follow the SDI picture: BT.709 transfer + primaries with the look on, Sony S-Log3 / S-Gamut3.Cine ULs without; 02/8120
+   = 06 / 02 alongside. 7F/E109 (= E113) is the look name ("07_TY_3 STRIP_JP.cube" -> "s709"). No ASC CDL on this camera.
    BURANO sends no record flag in RDD 18 (verified over 4 REC cycles,
    `captures/burano_rec_toggle_2026-10-06.txt`). With the camera in rec-run TC, RP188 TC runs only while recording;
    The 44/04 clip name is the clip being recorded while rolling, and the NEXT clip number once stopped; its 2-char

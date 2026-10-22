@@ -178,8 +178,14 @@ void fillSony(const FrameMetadata& md, MetaRecord& r) {
                          ValueSource::Derived);
         }
     }
-    r.setStr(Field::CaptureGamma, f.text(K::Camera, 0x3210), C::Documented, sonyTag(0x02, 0x3210));
-    r.setStr(Field::ColourPrimaries, f.text(K::Camera, 0x3219), C::Documented, sonyTag(0x02, 0x3219));
+    // 3210 / 3219 describe the SDI picture: BT.709 while the look is applied to the output (7F/E115 = 1), S-Log3 /
+    // S-Gamut3.Cine without it (VENICE 2, 2026-10-22).
+    r.setStr(Field::CaptureGamma, f.text(K::Camera, 0x3210), C::Verified, sonyTag(0x02, 0x3210));
+    r.setStr(Field::ColourPrimaries, f.text(K::Camera, 0x3219), C::Verified, sonyTag(0x02, 0x3219));
+    if (const Rdd18Item* i = f.find(K::UserDefined, 0xE115); i && i->value.size() == 1 && i->value[0] == 1) {
+        r.note(Field::CaptureGamma, "Look applied to the SDI output (7F/E115): gamma of the SDI picture, not the recording");
+        r.note(Field::ColourPrimaries, "Look applied to the SDI output (7F/E115): primaries of the SDI picture, not the recording");
+    }
     r.setStr(Field::LookName, f.text(K::UserDefined, 0xE109), C::Verified, sonyTag(0x7F, 0xE109));
 
     if (const Rdd18Item* t = f.find(K::UserDefined, 0x8414); t && t->value.size() == 4)
