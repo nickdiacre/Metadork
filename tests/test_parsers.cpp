@@ -249,6 +249,13 @@ int main() {
         OscConfig soc;
         for (const auto& v : catalogue(cs)) if (std::string(v.id).rfind("sensor_", 0) != 0) soc.disabled.insert(v.id);
         auto sm = buildOsc(cs, soc);
+        {
+            OscConfig io;
+            io.signs.invertTilt = io.signs.invertRoll = true;
+            for (const auto& v : catalogue(cs)) if (std::string(v.id) != "tilt" && std::string(v.id) != "roll") io.disabled.insert(v.id);
+            auto om = buildOsc(cs, io);
+            CHECK(om.size() == 2 && om[0] == oscMessage("/camera/tilt", float(-3.7)) && om[1] == oscMessage("/camera/roll", float(0.1)));
+        }
         CHECK(sm.size() == 2 && sm[0] == oscMessage("/camera/sensor_width", 35.925f) &&
               sm[1] == oscMessage("/camera/sensor_height", 23.95f));
         CHECK(cs.kind == CameraKind::Sony && cs.cameraModel == "VENICE 2 (MPC-3626)" && cs.cameraSerial == "0010025" &&
@@ -590,6 +597,9 @@ int main() {
         CHECK(sum % 256 == 0x40);                 // checksum: all 29 bytes sum to 0x40
         cs.focusInfinite = true;
         CHECK(buildFreeD(cs, fc)[23] == 0xFF);
+        fc.signs.invertTilt = fc.signs.invertRoll = true;   // receiver convention (Stage Precision)
+        auto inv = buildFreeD(cs, fc);
+        CHECK(((inv[5] << 16) | (inv[6] << 8) | inv[7]) == 327680 && ((inv[8] << 16) | (inv[9] << 8) | inv[10]) == 0xFF4000);
     }
 
     // OSC
@@ -673,6 +683,8 @@ int main() {
         a.outputs.otioHost = "10.0.0.9";
         a.outputs.otio.sourceNumber = 42;
         a.outputs.otio.includeTransform = true;
+        a.outputs.osc.signs.invertTilt = a.outputs.osc.signs.invertRoll = true;
+        a.outputs.freed.signs.invertPan = true;
         AppSettings b;
         settingsFromString(settingsToString(a), b);
         CHECK(settingsToString(a) == settingsToString(b));
@@ -680,6 +692,8 @@ int main() {
         CHECK(b.outputs.freedHost == "192.168.10.2" && b.outputs.freedPort == 40001 && b.outputs.freed.cameraId == 3);
         CHECK(b.outputs.osc.prefix == "/cam/a" && b.outputs.osc.focusUnit == FocusUnit::Feet && b.outputs.osc.disabled.size() == 2);
         CHECK(!b.outputs.otioMulticast && b.outputs.otioHost == "10.0.0.9" && b.outputs.otio.sourceNumber == 42);
+        CHECK(b.outputs.osc.signs.invertTilt && b.outputs.osc.signs.invertRoll && !b.outputs.osc.signs.invertPan);
+        CHECK(b.outputs.freed.signs.invertPan && !b.outputs.freed.signs.invertTilt && !b.outputs.otio.signs.invertRoll);
         // Missing / garbage values keep the defaults
         AppSettings c;
         settingsFromString("freed_port=abc\notio_source_number=999\nunknown=1\n", c);

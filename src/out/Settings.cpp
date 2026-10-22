@@ -12,6 +12,11 @@ namespace {
 
 std::string b(bool v) { return v ? "1" : "0"; }
 
+// Inverted axes as letters: "p" pan, "t" tilt, "r" roll (e.g. "tr")
+std::string signs(const OrientationSigns& s) {
+    return std::string(s.invertPan ? "p" : "") + (s.invertTilt ? "t" : "") + (s.invertRoll ? "r" : "");
+}
+
 std::string d(double v) {
     std::ostringstream o;
     o.precision(10);
@@ -76,7 +81,10 @@ std::string settingsToString(const AppSettings& s) {
       << "otio_source_number=" << o.otio.sourceNumber << "\n"
       << "otio_focal_as_pinhole=" << b(o.otio.focalAsPinhole) << "\n"
       << "otio_include_transform=" << b(o.otio.includeTransform) << "\n"
-      << "otio_infinity_m=" << d(o.otio.infinityMetres) << "\n";
+      << "otio_infinity_m=" << d(o.otio.infinityMetres) << "\n"
+      << "freed_invert=" << signs(o.freed.signs) << "\n"
+      << "osc_invert=" << signs(o.osc.signs) << "\n"
+      << "otio_invert=" << signs(o.otio.signs) << "\n";
     return w.str();
 }
 
@@ -148,6 +156,16 @@ void settingsFromString(const std::string& text, AppSettings& s) {
     boolean("otio_focal_as_pinhole", o.otio.focalAsPinhole);
     boolean("otio_include_transform", o.otio.includeTransform);
     real("otio_infinity_m", o.otio.infinityMetres);
+    auto readSigns = [&](const char* k, OrientationSigns& sg) {
+        if (auto it = kv.find(k); it != kv.end()) {
+            sg.invertPan = it->second.find('p') != std::string::npos;
+            sg.invertTilt = it->second.find('t') != std::string::npos;
+            sg.invertRoll = it->second.find('r') != std::string::npos;
+        }
+    };
+    readSigns("freed_invert", o.freed.signs);
+    readSigns("osc_invert", o.osc.signs);
+    readSigns("otio_invert", o.otio.signs);
 }
 
 bool loadSettings(const std::string& path, AppSettings& s) {

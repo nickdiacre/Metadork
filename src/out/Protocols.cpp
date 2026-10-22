@@ -77,9 +77,9 @@ std::array<uint8_t, 29> buildFreeD(const CameraSample& s, const FreeDConfig& c) 
     std::array<uint8_t, 29> p{};
     p[0] = 0xD1;
     p[1] = c.cameraId;
-    put24(&p[2], clampSigned24((s.hasPan ? s.pan : 0) * 32768.0));
-    put24(&p[5], clampSigned24((s.hasTilt ? s.tilt : 0) * 32768.0));
-    put24(&p[8], clampSigned24((s.hasRoll ? s.roll : 0) * 32768.0));
+    put24(&p[2], clampSigned24((s.hasPan ? c.signs.pan(s.pan) : 0) * 32768.0));
+    put24(&p[5], clampSigned24((s.hasTilt ? c.signs.tilt(s.tilt) : 0) * 32768.0));
+    put24(&p[8], clampSigned24((s.hasRoll ? c.signs.roll(s.roll) : 0) * 32768.0));
     // X, Y, Z (bytes 11..19) stay 0: no position source.
     put24(&p[20], s.hasFocal ? clampUnsigned24(s.focalMm * c.zoomCountsPerMm) : 0);
     int32_t focus = 0;
@@ -139,8 +139,12 @@ std::vector<std::vector<uint8_t>> buildOsc(const CameraSample& s, const OscConfi
     for (const auto& v : catalogue(s, c.focusUnit, c.infinityMetres)) {
         if (!v.available || !c.enabled(v.id)) continue;
         const std::string addr = c.prefix + "/" + v.id;
+        double num = v.num;
+        if (!std::strcmp(v.id, "pan")) num = c.signs.pan(num);
+        else if (!std::strcmp(v.id, "tilt")) num = c.signs.tilt(num);
+        else if (!std::strcmp(v.id, "roll")) num = c.signs.roll(num);
         switch (v.type) {
-            case VarType::Float: msgs.push_back(oscMessage(addr, float(v.num))); break;
+            case VarType::Float: msgs.push_back(oscMessage(addr, float(num))); break;
             case VarType::Int: msgs.push_back(oscMessage(addr, int32_t(std::lround(v.num)))); break;
             case VarType::String: msgs.push_back(oscMessage(addr, v.str)); break;
         }
@@ -217,8 +221,9 @@ std::string buildOpenTrackIOJson(const CameraSample& s, const OpenTrackIOConfig&
 
     if (c.includeTransform && (s.hasTilt || s.hasRoll || s.hasPan)) {
         root.raw("transforms", "[{\"id\":\"Camera\",\"translation\":{\"x\":0,\"y\":0,\"z\":0},\"rotation\":{\"pan\":" +
-                                   jnum(s.hasPan ? s.pan : 0) + ",\"tilt\":" + jnum(s.hasTilt ? s.tilt : 0) +
-                                   ",\"roll\":" + jnum(s.hasRoll ? s.roll : 0) + "}}]");
+                                   jnum(s.hasPan ? c.signs.pan(s.pan) : 0) + ",\"tilt\":" +
+                                   jnum(s.hasTilt ? c.signs.tilt(s.tilt) : 0) + ",\"roll\":" +
+                                   jnum(s.hasRoll ? c.signs.roll(s.roll) : 0) + "}}]");
     }
 
     if (f.includeStatic) {

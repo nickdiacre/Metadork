@@ -6,6 +6,15 @@
 #include <string>
 #include <vector>
 
+// Receivers differ in their pan / tilt / roll sign conventions (e.g. Stage Precision wants tilt and roll inverted
+// relative to the cameras' + up / + clockwise-from-behind). Each output has its own flags.
+struct OrientationSigns {
+    bool invertPan = false, invertTilt = false, invertRoll = false;
+    double pan(double v) const { return invertPan ? -v : v; }
+    double tilt(double v) const { return invertTilt ? -v : v; }
+    double roll(double v) const { return invertRoll ? -v : v; }
+};
+
 // ---------------------------------------------------------------- FreeD (D1 message, 29 bytes)
 // Layout: D1, camera ID, pan, tilt, roll (signed 24-bit, deg * 32768), X, Y, Z (signed 24-bit, mm * 64),
 // zoom, focus (unsigned 24-bit encoder counts), spare (16-bit), checksum = 0x40 - sum(bytes 0..27).
@@ -16,6 +25,7 @@ struct FreeDConfig {
     double zoomCountsPerMm = 1000.0;   // focal length mm -> counts (1000 = micrometres)
     bool irisInSpare = true;           // put the iris number in the spare bytes
     double irisSpareScale = 100.0;     // e.g. T2.8 -> 280
+    OrientationSigns signs;
 };
 
 std::array<uint8_t, 29> buildFreeD(const CameraSample& s, const FreeDConfig& c);
@@ -29,6 +39,7 @@ struct OscConfig {
     FocusUnit focusUnit = FocusUnit::Metres;
     double infinityMetres = 1000.0;  // focus value sent when the lens reports infinity
     bool bundle = false;             // one bundle per frame instead of separate messages
+    OrientationSigns signs;
     std::set<std::string> disabled;
     bool enabled(const std::string& id) const { return !disabled.count(id); }
 };
@@ -51,6 +62,7 @@ struct OpenTrackIOConfig {
                                    // receiver should take orientation from here
     double infinityMetres = 1000.0;
     double staticIntervalS = 2.0;  // the spec asks for static data about every 2 s
+    OrientationSigns signs;
 };
 
 struct OpenTrackIOFrame {

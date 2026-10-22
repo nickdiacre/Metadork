@@ -91,6 +91,24 @@ void row(const char* label, const std::string& value) {
     ImGui::TextUnformatted(value.c_str());
 }
 
+// "Invert  [ ] pan  [ ] tilt  [ ] roll" for one output; returns true if changed.
+bool orientationSigns(const char* id, OrientationSigns& sg) {
+    bool changed = false;
+    ImGui::PushID(id);
+    ImGui::TextUnformatted("Invert");
+    ImGui::SameLine();
+    changed |= ImGui::Checkbox("pan", &sg.invertPan);
+    ImGui::SameLine();
+    changed |= ImGui::Checkbox("tilt", &sg.invertTilt);
+    ImGui::SameLine();
+    changed |= ImGui::Checkbox("roll", &sg.invertRoll);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Cameras report tilt + up and roll + clockwise seen from behind. Invert for receivers that\n"
+                          "use the opposite convention (Stage Precision needs tilt and roll inverted).");
+    ImGui::PopID();
+    return changed;
+}
+
 bool beginKV(const char* id) {
     return ImGui::BeginTable(id, 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp);
 }
@@ -495,7 +513,8 @@ void drawFreeD(OutputsUi& ui, const OutputManager::Status& st, const OutputManag
         ImGui::TextDisabled("Now: focus %d, zoom %d, spare %d, tilt %.2f deg, roll %.2f deg", u24(23), u24(20),
                             (pkt[26] << 8) | pkt[27], s24(5) / 32768.0, s24(8) / 32768.0);
     }
-    ImGui::TextDisabled("Pan/tilt/roll = deg x 32768 (tilt and roll from Sony when present), X/Y/Z = 0. Infinity focus = 16777215.");
+    ui.dirty |= orientationSigns("freedsigns", p.freed.signs);
+    ImGui::TextDisabled("Pan/tilt/roll = deg x 32768 (tilt and roll when the camera sends them), X/Y/Z = 0. Infinity focus = 16777215.");
     connectionStatus(st.freedOpen, st.freedError, out.settings().freedHost, out.settings().freedPort, st.freedSent, "packets");
 }
 
@@ -509,6 +528,7 @@ void drawOsc(OutputsUi& ui, const OutputManager::Status& st, const OutputManager
     if (ImGui::Combo("Focus unit", &unit, "metres\0millimetres\0feet\0")) { p.osc.focusUnit = FocusUnit(unit); ui.dirty = true; }
     ui.dirty |= ImGui::InputDouble("Infinity sends (m)", &p.osc.infinityMetres, 0, 0, "%.1f");
     ui.dirty |= ImGui::Checkbox("Send as one bundle per frame", &p.osc.bundle);
+    ui.dirty |= orientationSigns("oscsigns", p.osc.signs);
     connectionStatus(st.oscOpen, st.oscError, out.settings().oscHost, out.settings().oscPort, st.oscSent, "datagrams");
 
     ImGui::SeparatorText("Variables");
@@ -583,6 +603,7 @@ void drawOpenTrackIO(OutputsUi& ui, const OutputManager::Status& st, const Outpu
         ImGui::SetTooltip("Off by default: a transform with zero pan and position would move a tracked camera to the\n"
                           "origin in the receiver. Only enable if nothing else supplies the camera transform.");
     ui.dirty |= ImGui::InputDouble("Infinity focus sends (m)", &p.otio.infinityMetres, 0, 0, "%.1f");
+    ui.dirty |= orientationSigns("otiosigns", p.otio.signs);
     connectionStatus(st.otioOpen, st.otioError, out.settings().otioDestination(), out.settings().otioPort, st.otioSent, "packets");
     ImGui::TextDisabled("Sends: lens focusDistance, fStop/tStop, pinholeFocalLength; timing incl. timecode; tracker "
                         "recording + slate (clip); static camera make/model/serial, sensor size, frame rate, ISO, shutter.");
