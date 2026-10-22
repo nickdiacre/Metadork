@@ -150,6 +150,8 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    35.961x19.436, 35.925x15.064 (2.39), 24.330x12.830 (S35 17:9-ish), 22.810x12.830 (S35 16:9). Lens 8004 (35mm-equiv
    focal) scales with the sensor diagonal (99 -> 105 -> 110 -> 156 mm with a 99 mm lens, 8005 unchanged), so it is a
    diagonal crop-factor equivalent. E10F (SDI image area) changes with it. No recording-resolution tag found.
+   Squeeze 2.0x confirmed 2026-10-22 (`captures/venice2_V2-6-squeeze_2026-10-22_raw.txt`: E10F 1920x640 on a 3:2 area);
+   no separate SDI-output desqueeze display setting was found on this camera.
    BURANO sends no record flag in RDD 18 (verified over 4 REC cycles,
    `captures/burano_rec_toggle_2026-10-06.txt`). With the camera in rec-run TC, RP188 TC runs only while recording;
    The 44/04 clip name is the clip being recorded while rolling, and the NEXT clip number once stopped; its 2-char
