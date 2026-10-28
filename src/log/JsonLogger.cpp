@@ -64,6 +64,11 @@ std::string JsonLogger::toJson(const FrameMetadata& md, bool raw) {
     j += ",\"no_signal\":" + std::string(md.noSignal ? "true" : "false");
     j += ",\"tc\":" + (md.tc.valid ? "\"" + md.tc.str() + "\"" : std::string("null"));
     j += ",\"tc_advancing\":" + std::string(md.tcAdvancing ? "true" : "false");
+    if (md.tc.valid) {  // for finding record cues: user bits and flags as the DeckLink reports them
+        char b[64];
+        std::snprintf(b, sizeof b, ",\"tc_userbits\":\"%08X\",\"tc_flags\":%u", unsigned(md.tc.userBits), unsigned(md.tc.flags));
+        j += b;
+    }
     j += ",\"rec\":\"" + std::string(recStateName(md.rec)) + "\"";
     if (!md.recSource.empty()) j += ",\"rec_source\":\"" + esc(md.recSource) + "\"";
 

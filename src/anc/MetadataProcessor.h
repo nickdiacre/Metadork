@@ -16,6 +16,7 @@ struct TimecodeInfo {
     bool dropFrame = false;
     uint32_t userBits = 0;
     bool recTrigger = false;  // SDI recording trigger (RP 188 user bit; DeckLink bmdTimecodeRecordingTriggered), e.g. RED
+    uint32_t flags = 0;       // raw DeckLink BMDTimecodeFlags (drop frame, field mark, colour frame, rec trigger ...), logged
     std::string str() const;
     bool operator==(const TimecodeInfo& o) const { return valid == o.valid && h == o.h && m == o.m && s == o.s && f == o.f; }
 };

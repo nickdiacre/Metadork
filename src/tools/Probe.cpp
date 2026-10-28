@@ -226,7 +226,8 @@ public:
                     if (fmt == bmdTimecodeRP188Any) {
                         m_tc.valid = true;
                         m_tc.h = h; m_tc.m = m; m_tc.s = s; m_tc.f = fr;
-                        m_tc.recTrigger = (tc->GetFlags() & bmdTimecodeRecordingTriggered) != 0;
+                        m_tc.flags = uint32_t(tc->GetFlags());
+                        m_tc.recTrigger = (m_tc.flags & bmdTimecodeRecordingTriggered) != 0;
                         BMDTimecodeUserBits ubAny = 0;
                         if (tc->GetTimecodeUserBits(&ubAny) == S_OK) m_tc.userBits = ubAny;
                     }
