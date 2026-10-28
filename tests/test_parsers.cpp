@@ -403,6 +403,9 @@ int main() {
             m2.arri.activeImageH = 1080;
             CameraSample c = sampleFrom(m2);
             CHECK(!c.hasSensor && c.record.get(Field::SensorMode).note.find("fills the frame") != std::string::npos);
+            FrameMetadata m3 = m;  // incomplete block (seen 2026-10-28): no camera type -> tilt / roll not sent
+            m3.arri.cameraTypeId = 0;
+            CHECK(!sampleFrom(m3).record.has(Field::Tilt) && !sampleFrom(m3).record.has(Field::Roll));
             // Manual size fills in when the camera has none; "Always" replaces a recognised one; Off leaves it
             OutputSettings os;
             os.manualSensorWidthMm = 36.696; os.manualSensorHeightMm = 15.312;  // LF 2.39:1 preset

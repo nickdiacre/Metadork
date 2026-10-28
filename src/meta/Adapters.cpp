@@ -118,8 +118,15 @@ void fillArri(const FrameMetadata& md, MetaRecord& r) {
             r.note(Field::SensorMode, why);
         }
     }
-    if (a.hasTilt) r.setNum(Field::Tilt, a.tiltDeg, C::Verified, hex(0x45C));
-    if (a.hasRoll) r.setNum(Field::Roll, a.rollDeg, C::Verified, hex(0x460));
+    // An incomplete block (2026-10-28: only clip / take / camera letter filled, camera type 0) has tilt / roll 0, not the
+    // 0xFFFFFFFF "n/a" code: don't send that as a level camera.
+    const bool cameraFilled = a.cameraTypeId != 0;
+    if (a.hasTilt && cameraFilled) r.setNum(Field::Tilt, a.tiltDeg, C::Verified, hex(0x45C));
+    if (a.hasRoll && cameraFilled) r.setNum(Field::Roll, a.rollDeg, C::Verified, hex(0x460));
+    if (!cameraFilled) {
+        r.note(Field::Tilt, "ARRI metadata block incomplete (no camera type)");
+        r.note(Field::Roll, "ARRI metadata block incomplete (no camera type)");
+    }
 
     r.setStr(Field::CameraTimecode, a.masterTc, C::Verified, hex(0x1A8));
     r.setStr(Field::Clip, a.clip(), C::Verified, a.clipName.empty() ? hex(0x698) : hex(0x6BB));

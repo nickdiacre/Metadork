@@ -111,6 +111,9 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    serial, focal; focus/iris invalid). With the table cleared, a ZEISS Supreme Prime 50/T1.5 (same serial 50128435 as
    seen on the VENICE 2) gave focus 0x378 = 1108 mm, iris 0x384 = 3475 -> T2.36, focal 50 mm; LDS lag type 2
    (unknown). Raw LDS/motor encoders stay 0/65535 with /i-type lenses.
+   Incomplete payloads exist: 2026-10-28 an on-set feed (DIT confirmed the payload was incomplete) carried a valid
+   18-packet block with only camera letter, take (0x510), clips (0x698 / 0x6BB) and HANC rec flag; camera type,
+   model, lens, exposure, image fields and camera TC all zero. Tilt / roll are ignored when camera type is 0.
    REC: clip counter (0x698) increments at REC START (briefly showing reel A000 for ~0.2 s first); nothing changes at
    REC stop; ARRI's clip name is the current / last recorded clip (Sony's is the next clip when stopped). The app
    does not infer record state from this (no stop event).
