@@ -1,5 +1,8 @@
 #include "meta/Adapters.h"
+#include "out/SensorModes.h"
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <sstream>
 
 namespace {
@@ -74,15 +77,46 @@ void fillArri(const FrameMetadata& md, MetaRecord& r) {
     if (a.pixelAspect > 0) r.setNum(Field::Squeeze, a.pixelAspect, C::Verified, hex(0x0C4));  // Mini LF 1.0 .. 2.0
     r.setStr(Field::LookName, a.lookFile, C::Verified, hex(0x0CC));
 
-    // ARRI sends no sensor size, and the Active Image fields (IDI06) don't identify the recording mode: on a Mini LF
-    // they gave the Open Gate shape in Open Gate, but 3840x2160 (16:9) in LF 2.39:1. So no guess is made: the size
-    // comes from the manual setting (Output -> Sensor size presets).
+    // ARRI sends no sensor size or mode. The Active Image (IDI06) has the recording area's shape when it's letterboxed
+    // inside the SDI frame (Mini LF Open Gate 1721x1198, ALEXA 265 6.5K Open Gate 1744x824), but when it fills the frame
+    // it says nothing (Mini LF LF 2.39:1 gave 3840x2160). So the mode is taken from the table only when the area is
+    // boxed and its aspect matches exactly one of this body's modes (with the squeeze undone too, in case the SDI
+    // output is de-squeezed); otherwise the size comes from the manual setting (Output > Sensor size).
     {
-        char why[160];
-        std::snprintf(why, sizeof why, "ARRI doesn't send sensor size: set it in Output > Sensor size (SDI active image %dx%d)",
-                      a.activeImageW, a.activeImageH);
-        r.note(Field::SensorWidth, why);
-        r.note(Field::SensorHeight, why);
+        const bool boxed = a.imageW > 0 && a.imageH > 0 && a.activeImageW > 0 && a.activeImageH > 0 &&
+                           (a.activeImageW < a.imageW || a.activeImageH < a.imageH);
+        const double aspect = a.activeImageH > 0 ? double(a.activeImageW) / a.activeImageH : 0;
+        SensorGuess g = guessSensorMode(model, aspect);
+        if (a.pixelAspect > 1.01)
+            for (const SensorMode* m : guessSensorMode(model, aspect / a.pixelAspect).candidates)
+                if (std::find(g.candidates.begin(), g.candidates.end(), m) == g.candidates.end()) g.candidates.push_back(m);
+        g.mode = g.candidates.size() == 1 ? g.candidates.front() : nullptr;
+
+        char why[200];
+        if (boxed && g.mode) {
+            const std::string origin = "arri.IDI06 " + std::to_string(a.activeImageW) + "x" + std::to_string(a.activeImageH) +
+                                       " + mode table";
+            r.setNum(Field::SensorWidth, g.mode->widthMm(), C::Inferred, origin, ValueSource::Derived);
+            r.setNum(Field::SensorHeight, g.mode->heightMm(), C::Inferred, origin, ValueSource::Derived);
+            r.setStr(Field::SensorMode, g.mode->name, C::Inferred, origin, ValueSource::Derived);
+        } else {
+            std::string list;
+            for (const SensorMode* m : g.candidates) list += (list.empty() ? "" : " / ") + std::string(m->name);
+            if (sensorBody(model).empty())
+                std::snprintf(why, sizeof why, "no ARRI mode table for %s: set the size in Output > Sensor size", model.c_str());
+            else if (!boxed)
+                std::snprintf(why, sizeof why, "SDI active image %dx%d fills the frame, so it doesn't show the mode: set it in "
+                              "Output > Sensor size", a.activeImageW, a.activeImageH);
+            else if (g.candidates.empty())
+                std::snprintf(why, sizeof why, "SDI active image %dx%d matches no %s mode: set it in Output > Sensor size",
+                              a.activeImageW, a.activeImageH, sensorBody(model).c_str());
+            else
+                std::snprintf(why, sizeof why, "SDI active image %dx%d could be %s: set it in Output > Sensor size",
+                              a.activeImageW, a.activeImageH, list.c_str());
+            r.note(Field::SensorWidth, why);
+            r.note(Field::SensorHeight, why);
+            r.note(Field::SensorMode, why);
+        }
     }
     if (a.hasTilt) r.setNum(Field::Tilt, a.tiltDeg, C::Verified, hex(0x45C));
     if (a.hasRoll) r.setNum(Field::Roll, a.rollDeg, C::Verified, hex(0x460));

@@ -15,6 +15,8 @@ void applySensorOverride(CameraSample& s, const OutputSettings& o) {
     if (o.sensorOverride == SensorOverride::WhenMissing && s.hasSensor) return;
     s.record.setNum(Field::SensorWidth, o.manualSensorWidthMm, Confidence::Inferred, "manual", ValueSource::Manual);
     s.record.setNum(Field::SensorHeight, o.manualSensorHeightMm, Confidence::Inferred, "manual", ValueSource::Manual);
+    s.record.clear(Field::SensorMode);  // the recognised mode (if any) no longer describes the size being sent
+    s.record.note(Field::SensorMode, "manual sensor size in use");
     s.refresh();
 }
 

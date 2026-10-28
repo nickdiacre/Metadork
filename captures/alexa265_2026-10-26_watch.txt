@@ -1,0 +1,75 @@
+Device: DeckLink 8K Pro (1)
+  VANC requires 10-bit YUV frames          no
+  HANC capture supported                   yes
+  HANC needs DID/SDID filters              yes
+  HANC filter 1 = 52/4D                    set
+Capturing for 3 s... (watching for changes)
+
+  NO SIGNAL (frame flagged)
+  signal back
+   0.00s  05:23:31:16  STATE arri=1 klv_complete=1 (1 klv, 19 packets) lens_data=1 -> viewer SENDS
+   0.00s  05:23:31:16  REC FLAG STOPPED
+Signal
+  Detected mode                            1080p24 (RGB 4:4:4)
+  Frames                                   70 (9 flagged no-signal)
+  Video input locked                       yes
+  Ancillary input locked                   yes
+
+ANC packets via IDeckLinkVideoFrameAncillaryPackets (what the viewer reads)
+  frames with >=1 packet: 61
+  DID 44 SDID 04  x1098   VANC lines: 9 10 11
+  DID 52 SDID 4D  x61     HANC lines: 9
+
+Timecode, each source queried separately
+  RP188 VITC1          61 frames, last 05:23:34:04
+  RP188 VITC2          -
+  RP188 LTC            61 frames, last 05:23:34:04
+  RP188 HFR            -
+  RP188 Any            61 frames, last 05:23:34:04
+  VITC (SD)            -
+  VITC field 2 (SD)    -
+
+Raw VANC lines via IDeckLinkVideoFrameAncillary
+  zero = buffer all zeros (driver likely not capturing VANC); black = real empty blanking
+  line  captured   zero  black  with-ADF  DID/SDID found
+     1        61      0     61         0 
+     2        61      0     61         0 
+     3        61      0     61         0 
+     4        61      0     61         0 
+     5        61      0     61         0 
+     6        61      0     61         0 
+     7        61      0     61         0 
+     8        61      0     61         0 
+     9        61      0      0        61  44/04
+    10        61      0      0        61  44/04
+    11        61      0      0        61  44/04
+    12        61      0     61         0 
+    13        61      0     61         0 
+    14        61      0     61         0 
+    15        61      0     61         0 
+    16        61      0     61         0 
+    17        61      0     61         0 
+    18        61      0     61         0 
+    19        61      0     61         0 
+    20        61      0     61         0 
+    21        61      0     61         0 
+    22        61      0     61         0 
+    23        61      0     61         0 
+    24        61      0     61         0 
+    25        61      0     61         0 
+    26        61      0     61         0 
+    27        61      0     61         0 
+    28        61      0     61         0 
+    29        61      0     61         0 
+    30        61      0     61         0 
+    31        61      0     61         0 
+    32        61      0     61         0 
+    33        61      0     61         0 
+    34        61      0     61         0 
+    35        61      0     61         0 
+    36        61      0     61         0 
+    37        61      0     61         0 
+    38        61      0     61         0 
+    39        61      0     61         0 
+    40        61      0     61         0 
+    41        61      0     61         0 

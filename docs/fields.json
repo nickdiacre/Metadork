@@ -37,6 +37,7 @@
     {"id": "capture_gamma", "group": "Image", "label": "Capture gamma", "unit": "", "type": "string", "livegrade": "", "opentrackio": "", "freed": "", "osc": "<prefix>/capture_gamma"},
     {"id": "colour_primaries", "group": "Image", "label": "Colour primaries", "unit": "", "type": "string", "livegrade": "", "opentrackio": "", "freed": "", "osc": "<prefix>/colour_primaries"},
     {"id": "look_name", "group": "Image", "label": "Look / LUT", "unit": "", "type": "string", "livegrade": "Look", "opentrackio": "", "freed": "", "osc": "<prefix>/look_name"},
+    {"id": "sensor_mode", "group": "Image", "label": "Sensor mode", "unit": "", "type": "string", "livegrade": "", "opentrackio": "", "freed": "", "osc": "<prefix>/sensor_mode"},
     {"id": "pan", "group": "Orientation", "label": "Pan", "unit": "deg", "type": "float", "livegrade": "", "opentrackio": "transforms[0].rotation.pan", "freed": "pan", "osc": "<prefix>/pan"},
     {"id": "tilt", "group": "Orientation", "label": "Tilt (+ up)", "unit": "deg", "type": "float", "livegrade": "Camera Tilt", "opentrackio": "transforms[0].rotation.tilt", "freed": "tilt", "osc": "<prefix>/tilt"},
     {"id": "roll", "group": "Orientation", "label": "Roll (+ clockwise from behind)", "unit": "deg", "type": "float", "livegrade": "Camera Roll", "opentrackio": "transforms[0].rotation.roll", "freed": "roll", "osc": "<prefix>/roll"},

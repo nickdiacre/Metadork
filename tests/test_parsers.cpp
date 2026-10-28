@@ -384,32 +384,53 @@ int main() {
                 ArriMetadata am;
                 CHECK(parseArriBlock(blk2.data(), blk2.size(), am) && std::fabs(am.tint + 3.0) < 1e-9);
             }
-            CHECK(!r.has(Field::RecordingWidth) && !r.has(Field::SensorWidth));
+            CHECK(!r.has(Field::RecordingWidth));
             CHECK(r.str(Field::CameraTimecode) == "00:03:29:17" && r.str(Field::Reel) == "A000APY6");
             CHECK(!r.has(Field::FocusDistance) && !r.get(Field::FocusDistance).note.empty());
             CHECK(r.str(Field::Camera) == "ARRI ALEXA Mini LF" && r.str(Field::Lens) == "Canon K35 70 47531R");
         }
         CHECK(std::fabs(a.pixelAspect - 1.0) < 1e-9 && cs.hasSqueeze && std::fabs(cs.squeeze - 1.0) < 1e-9);
-        // ARRI sends no sensor size and its Active Image fields don't identify the mode: no auto value, a note instead
-        CHECK(a.activeImageW == 1721 && a.activeImageH == 1198);
-        CHECK(!cs.hasSensor && cs.sensorSource.find("Sensor size") != std::string::npos);
-        {
-            // Manual size fills in when the camera has none; "Always" replaces a camera value
+        // ARRI sends no sensor size. The fixture is in Open Gate: its Active Image is letterboxed in the 1920x1080 SDI
+        // frame with the mode's shape, so the mode is recognised from the table.
+        CHECK(a.imageW == 1920 && a.imageH == 1080 && a.activeImageW == 1721 && a.activeImageH == 1198);
+        CHECK(cs.hasSensor && std::fabs(cs.sensorWidthMm - 36.696) < 1e-9 && std::fabs(cs.sensorHeightMm - 25.542) < 1e-9);
+        CHECK(cs.record.str(Field::SensorMode) == "4.5K LF 3:2 Open Gate" &&
+              cs.record.get(Field::SensorWidth).source == ValueSource::Derived &&
+              cs.record.get(Field::SensorWidth).confidence == Confidence::Inferred);
+        {   // the same camera with the active image filling the SDI frame (LF 2.39:1 gave 3840x2160): no guess, a note
+            FrameMetadata m2 = m;
+            m2.arri.activeImageW = 1920;
+            m2.arri.activeImageH = 1080;
+            CameraSample c = sampleFrom(m2);
+            CHECK(!c.hasSensor && c.record.get(Field::SensorMode).note.find("fills the frame") != std::string::npos);
+            // Manual size fills in when the camera has none; "Always" replaces a recognised one; Off leaves it
             OutputSettings os;
             os.manualSensorWidthMm = 36.696; os.manualSensorHeightMm = 15.312;  // LF 2.39:1 preset
-            CameraSample c2 = cs;
+            os.sensorOverride = SensorOverride::WhenMissing;
+            CameraSample c2 = c;
             applySensorOverride(c2, os);
             CHECK(c2.hasSensor && c2.sensorSource == "manual" && c2.sensorWidthMm == 36.696);
-            os.sensorOverride = SensorOverride::Off;
             CameraSample c3 = cs;
             applySensorOverride(c3, os);
-            CHECK(!c3.hasSensor);
+            CHECK(std::fabs(c3.sensorHeightMm - 25.542) < 1e-9);  // recognised Open Gate kept
+            os.sensorOverride = SensorOverride::Always;
+            applySensorOverride(c3, os);
+            CHECK(c3.sensorHeightMm == 15.312 && c3.record.str(Field::SensorMode).empty());
+            os.sensorOverride = SensorOverride::Off;
+            CameraSample c4 = c;
+            applySensorOverride(c4, os);
+            CHECK(!c4.hasSensor);
         }
-        // Ambiguous / unknown modes are not guessed
-        CHECK(guessSensorMode("ALEXA 35", 16.0 / 9.0).candidates.size() == 3 && !guessSensorMode("ALEXA 35", 16.0 / 9.0).mode);
-        CHECK(guessSensorMode("ALEXA Mini LF", 3840.0 / 2160.0).mode && std::string(guessSensorMode("ALEXA Mini LF", 16.0 / 9.0).mode->name) == "LF 16:9 UHD");
+        // Body matching: longest name wins; ambiguous aspects are not guessed
+        CHECK(sensorBody("ARRI ALEXA Mini LF") == "ALEXA Mini LF" && sensorBody("ALEXA Mini") == "ALEXA Mini" &&
+              sensorBody("ARRI ALEXA 265") == "ALEXA 265" && sensorBody("ALEXA 65") == "ALEXA 65" && sensorBody("Venice").empty());
+        CHECK(guessSensorMode("ALEXA 35", 16.0 / 9.0).candidates.size() == 4 && !guessSensorMode("ALEXA 35", 16.0 / 9.0).mode);
+        CHECK(guessSensorMode("ALEXA Mini LF", 16.0 / 9.0).candidates.size() == 4);
         CHECK(std::fabs(guessSensorMode("ALEXA 35", 4608.0 / 3164.0).mode->widthMm() - 27.9936) < 1e-9);
-        CHECK(!guessSensorMode("ALEXA Mini", 1.5).mode);   // no table for S35 ALEV III bodies yet
+        CHECK(!guessSensorMode("ALEXA Mini", 1.5).mode);   // no 3:2 mode on the ALEXA Mini
+        // ALEXA 265 on hardware 2026-10-27: active image 1744x824 in a 1920x1080 SDI frame
+        CHECK(guessSensorMode("ARRI ALEXA 265", 1744.0 / 824.0).mode &&
+              std::string(guessSensorMode("ARRI ALEXA 265", 1744.0 / 824.0).mode->name) == "6.5K 2.12:1 Open Gate");
         OpenTrackIOFrame of;
         of.includeStatic = true;
         cs.squeeze = 1.333;

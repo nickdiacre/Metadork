@@ -52,6 +52,7 @@ const char* cameraTypeName(uint32_t id) {
         case 8: return "ALEXA LF";
         case 9: return "ALEXA Mini LF";
         case 10: return "ALEXA 35";
+        case 11: return "ALEXA 265";  // seen on hardware 2026-10-26 (not in the 2023 white paper)
         default: return "Unknown ARRI";
     }
 }
@@ -63,6 +64,8 @@ bool parseArriBlock(const uint8_t* value, size_t size, ArriMetadata& m) {
     m = ArriMetadata{};
 
     // Image content info
+    m.imageW = r.i32(0x0014);
+    m.imageH = r.i32(0x0018);
     m.activeImageW = r.i32(0x002C);
     m.activeImageH = r.i32(0x0030);
     m.whiteBalanceK = r.u32(0x005C);

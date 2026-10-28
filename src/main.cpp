@@ -623,7 +623,10 @@ void drawOpenTrackIO(OutputsUi& ui, const OutputManager::Status& st, const Outpu
 // needs it (or a manual value is in force).
 struct ManualInputs {
     CameraKind kind = CameraKind::None;
-    bool cameraHasSensor = false;   // the camera sends its own sensor size
+    bool cameraHasSensor = false;   // the camera sends its own sensor size (not derived from the mode table)
+    std::string cameraModel;        // for listing the camera's own modes first
+    std::string sensorMode;         // mode recognised from the SDI active image (ARRI), or ""
+    std::string sensorModeNote;     // why it wasn't recognised
     char* redPosition = nullptr;    // 2-char buffer
     bool redPositionChanged = false;
 };
@@ -667,27 +670,38 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
             ImGui::TextDisabled("Camera / derived: %s",
                                 last.sensorSource.empty() ? "none" : (last.hasSensor ? fmt("%.2f", last.sensorWidthMm) + " x " +
                                     fmt("%.2f mm  ", last.sensorHeightMm) + "(" + last.sensorSource + ")" : last.sensorSource).c_str());
+            if (!manual.sensorMode.empty())
+                ImGui::Text("Recognised mode: %s", manual.sensorMode.c_str());
+            else if (!manual.sensorModeNote.empty())
+                ImGui::TextWrapped("Mode: %s", manual.sensorModeNote.c_str());
             int mode = int(p.sensorOverride);
             if (ImGui::Combo("Manual size", &mode, "Off\0Use when the camera has none\0Always use\0")) {
                 p.sensorOverride = SensorOverride(mode);
                 ui.dirty = true;
             }
             if (ImGui::BeginCombo("Preset", "Choose a recording mode...")) {
-                for (const auto& m : sensorModes()) {
-                    const std::string label = std::string(m.camera) + "  " + m.name + "  " + fmt("%.2f", m.widthMm()) + " x " +
-                                              fmt("%.2f mm", m.heightMm());
-                    if (ImGui::Selectable(label.c_str())) {
-                        p.manualSensorWidthMm = m.widthMm();
-                        p.manualSensorHeightMm = m.heightMm();
-                        ui.dirty = true;
+                // This camera's modes first, then every other body.
+                const std::string body = sensorBody(manual.cameraModel);
+                for (int pass = 0; pass < 2; ++pass) {
+                    if (pass == 1 && !body.empty()) ImGui::SeparatorText("Other cameras");
+                    for (const auto& m : sensorModes()) {
+                        if ((body == m.camera) != (pass == 0)) continue;
+                        const std::string label = std::string(m.camera) + "  " + m.name + "  " + fmt("%.2f", m.widthMm()) +
+                                                  " x " + fmt("%.2f mm", m.heightMm());
+                        if (ImGui::Selectable(label.c_str())) {
+                            p.manualSensorWidthMm = m.widthMm();
+                            p.manualSensorHeightMm = m.heightMm();
+                            ui.dirty = true;
+                        }
                     }
                 }
                 ImGui::EndCombo();
             }
             ui.dirty |= ImGui::InputDouble("Width (mm)", &p.manualSensorWidthMm, 0, 0, "%.3f");
             ui.dirty |= ImGui::InputDouble("Height (mm)", &p.manualSensorHeightMm, 0, 0, "%.3f");
-            ImGui::TextDisabled("This camera doesn't send its sensor size (ARRI never does). Pick the recording mode's "
-                                "preset or type the active area.");
+            ImGui::TextDisabled("This camera doesn't send its sensor size (ARRI never does). It is recognised from the SDI "
+                                "image when that shows the mode's shape; otherwise pick the recording mode's preset or type "
+                                "the active area.");
         }
     }
 
@@ -1024,7 +1038,10 @@ int main() {
         CameraSample cs = sampleFrom(md);
         ManualInputs manual;
         manual.kind = cs.kind;
-        manual.cameraHasSensor = cs.hasSensor;
+        manual.cameraHasSensor = cs.hasSensor && cs.record.get(Field::SensorWidth).source == ValueSource::Camera;
+        manual.cameraModel = cs.record.str(Field::CameraModel);
+        manual.sensorMode = cs.record.str(Field::SensorMode);
+        manual.sensorModeNote = cs.record.get(Field::SensorMode).note;
         manual.redPosition = redPosition;
         applySensorOverride(cs, outputs.settings());
         if (ImGui::BeginTabBar("tabs")) {

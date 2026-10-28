@@ -96,10 +96,13 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    roll 0x460 = signed 16-bit in the low half (0xFFFFFFFF = n/a, pan always n/a), tenths of a degree: roll verified
    with a phone inclinometer (20 deg clockwise from behind = 205; + = clockwise, same as Sony). Tilt checked 2026-10-22 (`captures/minilf_T8b-tilt-circle_2026-10-22_watch.txt`): phone +-20 deg read +24 / -18 (+ = up), consistent with a ~3 deg offset between the phone's resting surface and the camera's sensor axis. Scene 0x500 / take 0x510 verified (ASCII); circle take 0x4F4 untested. No sensor physical size
    on SDI (IDI fields describe the SDI output image), and the Active Image (IDI06, 0x2C/0x30) does NOT identify the recording
-   mode: Open Gate gave 1721x1198 (its own shape) but LF 2.39:1 4.5K gave 3840x2160 (the SDI frame), 2026-10-22. So
-   there's no auto-derivation: ARRI sensor size comes from the manual setting (Output tab: off / when missing /
-   always), with presets in `SensorModes` (photosites x pitch from ARRI format data; LF/Mini LF 8.25 um, ALEXA 35
-   6.075 um). The SDI image doesn't reveal crop modes either (the recorded area is scaled to fill it). Frame line file name e.g.
+   mode on its own: Open Gate gave 1721x1198 (its own shape) but LF 2.39:1 4.5K gave 3840x2160 (the SDI frame), 2026-10-22.
+   `SensorModes` is a table of every ARRI body's modes from ARRI's format data (ALEXA 35, Mini LF, LF, 265, 65, Mini,
+   SXT, AMIRA; photosites x pitch; XT / classic, ALEXA 35 SUP 2+ and AMIRA S16 not yet in it). The ARRI adapter
+   recognises the mode (sensor_mode + sensor size, derived / inferred) only when the active image is boxed inside the
+   SDI frame (IDI02/03) AND its aspect (or aspect / squeeze) matches exactly one mode of that body; otherwise a note
+   lists the candidates and the manual setting (Output tab: off / when missing / always, presets) is used. ALEXA 265
+   (camera type 11) gave 1744x824 = 6.5K 2.12:1 Open Gate on 2026-10-27, but 1920x1080 on 2026-10-26 (no guess). The SDI image doesn't reveal crop modes either (the recorded area is scaled to fill it). Frame line file name e.g.
    "ARRI LFOG 1.78" hints the format but is user-named. UMID 0x27C all FF.
    Pixel aspect / anamorphic squeeze (ICI18, 0x0C4) is an IEEE float: 0x3F800000 = 1.0 with a spherical lens;
    anamorphic values (1.25..2.0) not yet seen on hardware. Output as OSC /squeeze and OpenTrackIO

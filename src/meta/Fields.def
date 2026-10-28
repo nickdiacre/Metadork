@@ -43,6 +43,7 @@ F(Codec,             "codec",             Image,    "Codec",                    
 F(CaptureGamma,      "capture_gamma",     Image,    "Capture gamma",              "",     String, "",                 "", "")
 F(ColourPrimaries,   "colour_primaries",  Image,    "Colour primaries",           "",     String, "",                 "", "")
 F(LookName,          "look_name",         Image,    "Look / LUT",                 "",     String, "Look",             "", "")
+F(SensorMode,        "sensor_mode",       Image,    "Sensor mode",                "",     String, "",                 "", "")
 // ---- orientation
 F(Pan,               "pan",               Orientation, "Pan",                     "deg",  Float,  "",                 "transforms[0].rotation.pan", "pan")
 F(Tilt,              "tilt",              Orientation, "Tilt (+ up)",             "deg",  Float,  "Camera Tilt",      "transforms[0].rotation.tilt", "tilt")
