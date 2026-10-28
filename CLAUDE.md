@@ -180,9 +180,10 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    7F/8415 = CAMERA ROLL, same units, + = clockwise seen from behind the camera (right side down). Verified hand-held:
    level 0.0, ~20 deg clockwise +17.7, anticlockwise -16.1 / -15.8, with tilt unchanged. Both go to FreeD, OSC and
    (opt-in) the OpenTrackIO transform. Neither field changes with pan; no pan source exists.
-   Receivers differ: Stage Precision needs ROLL inverted, tilt not (checked on VENICE 2 and Mini LF over OSC, 2026-10-22;
-   an earlier Mini LF note saying tilt too was wrong). Both cameras decode + = tilt up, + = roll clockwise from behind, so each
-   output (FreeD / OSC / OpenTrackIO) has its own invert pan / tilt / roll flags (`OrientationSigns`), saved in settings.
+   Both cameras SEND + = tilt up, + = roll clockwise from behind. Stage Precision needs roll the other way, tilt not (checked
+   on VENICE 2 and Mini LF over OSC, 2026-10-22), so since 2026-10-28 the adapters negate roll: every output sends roll
+   + anticlockwise from behind by default (field label says so). Each output (FreeD / OSC / OpenTrackIO) still has its own
+   invert pan / tilt / roll flags (`OrientationSigns`); settings files without roll_convention=2 have invert-roll dropped.
 2c. RED V-RAPTOR 8K VV (2026-10-22, 8K Pro, 2160p25, `captures/red_raptor_RD-1-rec_2026-10-22_raw.txt`): no VANC/HANC
    camera metadata packets, only ATC timecode (60/60, LTC line 10 + VITC2 line 571, identical). RED packs clip name +
    record flag into the 32 timecode user bits, alternating two blocks per frame (RED doc 910-0084 "HD-SDI HANC Metadata

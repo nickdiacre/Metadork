@@ -85,7 +85,8 @@ std::string settingsToString(const AppSettings& s) {
       << "otio_infinity_m=" << d(o.otio.infinityMetres) << "\n"
       << "freed_invert=" << signs(o.freed.signs) << "\n"
       << "osc_invert=" << signs(o.osc.signs) << "\n"
-      << "otio_invert=" << signs(o.otio.signs) << "\n";
+      << "otio_invert=" << signs(o.otio.signs) << "\n"
+      << "roll_convention=2\n";
     return w.str();
 }
 
@@ -168,6 +169,10 @@ void settingsFromString(const std::string& text, AppSettings& s) {
     readSigns("freed_invert", o.freed.signs);
     readSigns("osc_invert", o.osc.signs);
     readSigns("otio_invert", o.otio.signs);
+    // Before roll_convention=2 roll went out + clockwise and Stage Precision needed "invert roll"; it is now sent
+    // + anticlockwise by default, so an invert-roll flag from an older file would flip it back: drop it.
+    if (kv.find("roll_convention") == kv.end() && kv.find("osc_invert") != kv.end())
+        o.freed.signs.invertRoll = o.osc.signs.invertRoll = o.otio.signs.invertRoll = false;
 }
 
 bool loadSettings(const std::string& path, AppSettings& s) {

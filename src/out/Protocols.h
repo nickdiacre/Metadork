@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-// Receivers differ in their pan / tilt / roll sign conventions (e.g. Stage Precision wants tilt and roll inverted
-// relative to the cameras' + up / + clockwise-from-behind). Each output has its own flags.
+// Values go out as tilt + up and roll + anticlockwise seen from behind (the cameras send roll + clockwise; Stage
+// Precision expects anticlockwise, checked on VENICE 2 and Mini LF). Receivers that differ get per-output invert flags.
 struct OrientationSigns {
     bool invertPan = false, invertTilt = false, invertRoll = false;
     double pan(double v) const { return invertPan ? -v : v; }

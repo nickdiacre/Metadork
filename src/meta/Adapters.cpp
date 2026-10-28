@@ -122,7 +122,8 @@ void fillArri(const FrameMetadata& md, MetaRecord& r) {
     // 0xFFFFFFFF "n/a" code: don't send that as a level camera.
     const bool cameraFilled = a.cameraTypeId != 0;
     if (a.hasTilt && cameraFilled) r.setNum(Field::Tilt, a.tiltDeg, C::Verified, hex(0x45C));
-    if (a.hasRoll && cameraFilled) r.setNum(Field::Roll, a.rollDeg, C::Verified, hex(0x460));
+    // Roll goes out + anticlockwise seen from behind (ARRI sends + clockwise): the convention Stage Precision expects.
+    if (a.hasRoll && cameraFilled) r.setNum(Field::Roll, -a.rollDeg, C::Verified, hex(0x460));
     if (!cameraFilled) {
         r.note(Field::Tilt, "ARRI metadata block incomplete (no camera type)");
         r.note(Field::Roll, "ARRI metadata block incomplete (no camera type)");
@@ -232,7 +233,7 @@ void fillSony(const FrameMetadata& md, MetaRecord& r) {
     if (const Rdd18Item* t = f.find(K::UserDefined, 0x8414); t && t->value.size() == 4)
         r.setNum(Field::Tilt, rdd18TenthDegree(t->value), C::Verified, sonyTag(0x7F, 0x8414));
     if (const Rdd18Item* t = f.find(K::UserDefined, 0x8415); t && t->value.size() == 4)
-        r.setNum(Field::Roll, rdd18TenthDegree(t->value), C::Verified, sonyTag(0x7F, 0x8415));
+        r.setNum(Field::Roll, -rdd18TenthDegree(t->value), C::Verified, sonyTag(0x7F, 0x8415));  // sent + clockwise
 
     r.setStr(Field::Clip, md.sonyClip, C::Verified, "sony.4404.clip");
     if (md.sonyClip.size() >= 4) r.setStr(Field::Reel, md.sonyClip.substr(0, 4), C::Inferred, "derived: clip name prefix", ValueSource::Derived);

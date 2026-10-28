@@ -245,7 +245,7 @@ int main() {
         CHECK(cs.hasFocal && std::fabs(cs.focalMm - 50.0) < 1e-9);
         CHECK(cs.hasIris && cs.irisKind == 'T' && std::fabs(cs.iris - 1.49) < 0.01);
         CHECK(cs.hasTilt && std::fabs(cs.tilt - 3.7) < 1e-9 && !cs.hasPan);  // 8414 = 133200
-        CHECK(cs.hasRoll && std::fabs(cs.roll + 0.1) < 1e-9);                  // 8415 = -3600
+        CHECK(cs.hasRoll && std::fabs(cs.roll - 0.1) < 1e-9);                  // 8415 = -3600 (+ clockwise) -> +0.1 sent
         CHECK(cs.hasSqueeze && cs.squeeze == 1.0);  // E10F 1620x1080 on a 3:2 sensor area
         CHECK(cs.hasSensor && std::fabs(cs.sensorWidthMm - 35.925) < 1e-9 && std::fabs(cs.sensorHeightMm - 23.95) < 1e-9);
         OscConfig soc;
@@ -256,7 +256,7 @@ int main() {
             io.signs.invertTilt = io.signs.invertRoll = true;
             for (const auto& v : catalogue(cs)) if (std::string(v.id) != "tilt" && std::string(v.id) != "roll") io.disabled.insert(v.id);
             auto om = buildOsc(cs, io);
-            CHECK(om.size() == 2 && om[0] == oscMessage("/camera/tilt", float(-3.7)) && om[1] == oscMessage("/camera/roll", float(0.1)));
+            CHECK(om.size() == 2 && om[0] == oscMessage("/camera/tilt", float(-3.7)) && om[1] == oscMessage("/camera/roll", float(-0.1)));
         }
         CHECK(sm.size() == 2 && sm[0] == oscMessage("/camera/sensor_width", 35.925f) &&
               sm[1] == oscMessage("/camera/sensor_height", 23.95f));
@@ -297,7 +297,7 @@ int main() {
             if (j.find(want) == std::string::npos) { std::printf("OpenTrackIO JSON missing %s\n%s\n", want, j.c_str()); CHECK(false); }
         CHECK(j.find("transforms") == std::string::npos);  // off by default
         oc.includeTransform = true;
-        CHECK(buildOpenTrackIOJson(cs, oc, of).find("\"rotation\":{\"pan\":0,\"tilt\":3.7,\"roll\":-0.1}") != std::string::npos);
+        CHECK(buildOpenTrackIOJson(cs, oc, of).find("\"rotation\":{\"pan\":0,\"tilt\":3.7,\"roll\":0.1}") != std::string::npos);
         of.includeStatic = false;
         CHECK(buildOpenTrackIOJson(cs, oc, of).find("\"static\"") == std::string::npos);
         CHECK(md.rdd18.text(K::UserDefined, 0x8415) == "-0.1 deg");
@@ -727,6 +727,11 @@ int main() {
         CHECK(!b.outputs.otioMulticast && b.outputs.otioHost == "10.0.0.9" && b.outputs.otio.sourceNumber == 42);
         CHECK(b.outputs.osc.signs.invertTilt && b.outputs.osc.signs.invertRoll && !b.outputs.osc.signs.invertPan);
         CHECK(b.outputs.freed.signs.invertPan && !b.outputs.freed.signs.invertTilt && !b.outputs.otio.signs.invertRoll);
+        {   // a file from before roll_convention=2: its invert-roll (the old Stage Precision workaround) is dropped
+            AppSettings old;
+            settingsFromString("osc_invert=tr\nfreed_invert=r\n", old);
+            CHECK(old.outputs.osc.signs.invertTilt && !old.outputs.osc.signs.invertRoll && !old.outputs.freed.signs.invertRoll);
+        }
         // Missing / garbage values keep the defaults
         AppSettings c;
         settingsFromString("freed_port=abc\notio_source_number=999\nunknown=1\n", c);

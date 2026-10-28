@@ -107,8 +107,8 @@ bool orientationSigns(const char* id, OrientationSigns& sg) {
     ImGui::SameLine();
     changed |= ImGui::Checkbox("roll", &sg.invertRoll);
     if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("Cameras report tilt + up and roll + clockwise seen from behind. Invert for receivers that\n"
-                          "use the opposite convention (Stage Precision needs tilt and roll inverted).");
+        ImGui::SetTooltip("Sent as tilt + up and roll + anticlockwise seen from behind (what Stage Precision expects).\n"
+                          "Invert for receivers that use the opposite convention.");
     ImGui::PopID();
     return changed;
 }
