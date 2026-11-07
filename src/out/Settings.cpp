@@ -42,6 +42,21 @@ std::string defaultSettingsPath() {
     return (dir / "settings.ini").string();
 }
 
+std::string resolveUserPath(const std::string& path) {
+    if (path.empty() || fs::path(path).is_absolute()) return path;
+#ifdef _WIN32
+    const char* home = std::getenv("USERPROFILE");
+    const fs::path dir = home ? fs::path(home) / "Documents" : fs::path(".");
+#elif defined(__APPLE__)
+    const char* home = std::getenv("HOME");
+    const fs::path dir = home ? fs::path(home) / "Documents" : fs::path(".");
+#else
+    const char* home = std::getenv("HOME");
+    const fs::path dir = home ? fs::path(home) : fs::path(".");
+#endif
+    return (dir / path).string();
+}
+
 std::string settingsToString(const AppSettings& s) {
     const auto& o = s.outputs;
     std::string disabled;
@@ -56,6 +71,7 @@ std::string settingsToString(const AppSettings& s) {
       << "red_position=" << s.redPosition << "\n"
       << "log_path=" << s.logPath << "\n"
       << "log_raw=" << b(s.logRaw) << "\n"
+      << "replay_path=" << s.replayPath << "\n"
       << "sensor_override=" << int(o.sensorOverride) << "\n"
       << "manual_sensor_width_mm=" << d(o.manualSensorWidthMm) << "\n"
       << "manual_sensor_height_mm=" << d(o.manualSensorHeightMm) << "\n"
@@ -119,6 +135,7 @@ void settingsFromString(const std::string& text, AppSettings& s) {
     if (auto it = kv.find("red_position"); it != kv.end() && it->second.size() == 1 && std::isalpha((unsigned char)it->second[0]))
         s.redPosition = char(std::toupper((unsigned char)it->second[0]));
     str("log_path", s.logPath);
+    str("replay_path", s.replayPath);
     boolean("log_raw", s.logRaw);
     int so = int(o.sensorOverride);
     integer("sensor_override", so);

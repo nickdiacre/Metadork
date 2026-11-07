@@ -1,6 +1,7 @@
 // Parser tests that run without a DeckLink card or SDK.
 // Builds a synthetic ARRI SDI metadata stream exactly as described in the
 // ARRI SDI Metadata white paper and checks it decodes.
+#include "anc/CaptureReplay.h"
 #include "anc/MetadataProcessor.h"
 #include "anc/RedHanc.h"
 #include "meta/Adapters.h"
@@ -788,6 +789,26 @@ int main() {
         t.userBits = 0x7E410084;                                                // stopped; next clip appears later
         for (int i = 0; i < 4; ++i) { t.userBits = i % 2 ? 0x7E410084 : 0x16AC0034; last = red.process({}, t, false, 1 + i * 0.04); }
         CHECK(last.rec == RecState::Stopped && last.recordingName == "R003_A007_102263");  // held after stop
+    }
+
+    // Replay: VENICE 2 --raw capture with HANC record flag + TC user bits (captures/venice2_V2-1-hanc_2026-10-22_raw.txt)
+    {
+        std::vector<ReplayFrame> frames;
+        std::string err;
+        CHECK(loadRawCapture(SDIMETA_SOURCE_DIR "/captures/venice2_V2-1-hanc_2026-10-22_raw.txt", frames, err));
+        CHECK(frames.size() == 787 && frames.front().t == 0.0 && !frames.front().packets.empty());
+        CHECK(frames.front().tc.valid && frames.front().tc.h == 20 && frames.front().tc.m == 28 && frames.front().tc.flags == 2);
+        MetadataProcessor rp;
+        int recFrames = 0;
+        MetaRecord r;
+        for (const auto& f : frames) {
+            FrameMetadata m = rp.process(std::vector<AncPacket>(f.packets), f.tc, false, f.t);
+            if (m.rec == RecState::Recording) ++recFrames;
+            r = buildRecord(m);
+        }
+        CHECK(recFrames > 0 && r.kind == CameraKind::Sony);
+        CHECK(!loadRawCapture(SDIMETA_SOURCE_DIR "/captures/venice2_2026-10-21_probe.txt", frames, err) && !err.empty());
+        CHECK(!loadRawCapture("/nonexistent/file.txt", frames, err));
     }
 
     std::printf(g_fail ? "%d FAILED\n" : "All parser tests passed\n", g_fail);

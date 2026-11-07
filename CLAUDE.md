@@ -62,6 +62,15 @@ and Blackmagic URSA.
     applied at launch, so enabled outputs start sending immediately.
   - `UdpSender` (POSIX + Winsock), `OutputManager` (sends on every captured frame; needs the video rate for timing).
   - macOS asks for Local Network permission the first time the app sends; sends fail silently until granted.
+- `src/anc/CaptureReplay`: replays a `sdimeta_probe --raw` capture (packets + TC user bits / flags) through a fresh
+  MetadataProcessor at the recorded timing, looping; app "Replay a capture file" section, drag-and-drop, `--replay <file>`.
+  Replay feeds the live outputs too.
+- App `--screenshots <dir> [--screenshot-prefix p]`: default settings (outputs to 127.0.0.1), renders every tab, saves
+  TGAs, quits. `tools/screenshots.sh` regenerates docs/images for docs/MANUAL.md from sample captures.
+- Release: `third_party/decklink` = SDK 16.0 include folders (EULA clause 0.1 exempts them; default DECKLINK_SDK_DIR).
+  macOS builds a .app (packaging/macos/Info.plist.in, NSLocalNetworkUsageDescription); Windows static CRT, no console.
+  Relative log paths resolve to ~/Documents (`resolveUserPath`). `.github/workflows/build.yml`: macOS universal +
+  Windows build/test/zip on every push; tag v* publishes a GitHub release (zips include packaging/samples.txt captures).
 - `src/log/JsonLogger`: JSON Lines, one object per frame, with optional raw ANC hex.
 - `src/capture/`: DeckLink enumeration, input callback, platform shims (BSTR/CFStringRef/char*, COM vs dispatch).
 - `tools/capture.sh <camera> <test> [secs] [probe args]`: one-command captures for docs/TEST_PLAN.md.
@@ -217,9 +226,9 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
 
 ## Build
 ```bash
-cmake -S . -B build -DDECKLINK_SDK_DIR="/path/to/Blackmagic DeckLink SDK"   # folder containing Mac/ Win/ Linux/
+cmake -S . -B build          # bundled SDK 16.0 headers; -DDECKLINK_SDK_DIR=... for another SDK
 cmake --build build -j
-./build/SdiMetaViewer        # Windows: build\Release\SdiMetaViewer.exe (build from the x64 Native Tools prompt)
+open "build/SDI Metadata Viewer.app"   # Windows: build\Release\SdiMetaViewer.exe (x64 Native Tools prompt, for MIDL)
 # Tests only, no SDK needed:
 cmake -S . -B build -DSDIMETA_BUILD_APP=OFF && cmake --build build && ctest --test-dir build
 ```

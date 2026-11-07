@@ -3,11 +3,14 @@ project(SdiMetaViewer LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Windows: link the C++ runtime statically so the release .exe runs without the VC++ redistributable.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 option(SDIMETA_BUILD_APP   "Build the GUI app (needs the DeckLink SDK)" ON)
 option(SDIMETA_BUILD_TESTS "Build parser tests (no SDK or hardware needed)" ON)
-set(DECKLINK_SDK_DIR "" CACHE PATH
-    "Blackmagic DeckLink SDK root, i.e. the folder containing Win/, Mac/ and Linux/")
+set(DECKLINK_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/decklink" CACHE PATH
+    "Blackmagic DeckLink SDK root, i.e. the folder containing Win/, Mac/ and Linux/ (default: the bundled 16.0 headers)")
+set(SDIMETA_VERSION "0.0.0-dev" CACHE STRING "Version shown in the app and the macOS bundle (set by the release build)")
 
 # ---------------------------------------------------------------- core (no SDK)
 add_library(sdimeta_core STATIC
@@ -19,6 +22,7 @@ add_library(sdimeta_core STATIC
     src/anc/MetadataProcessor.cpp
     src/anc/TakeTracker.cpp
     src/anc/RedHanc.cpp
+    src/anc/CaptureReplay.cpp
     src/log/JsonLogger.cpp
     src/meta/MetaRecord.cpp
     src/meta/Adapters.cpp
@@ -37,6 +41,7 @@ if(SDIMETA_BUILD_TESTS)
     enable_testing()
     add_executable(sdimeta_tests tests/test_parsers.cpp)
     target_link_libraries(sdimeta_tests PRIVATE sdimeta_core)
+    target_compile_definitions(sdimeta_tests PRIVATE SDIMETA_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME parsers COMMAND sdimeta_tests)
 endif()
 
@@ -60,6 +65,7 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+set(USE_MSVC_RUNTIME_LIBRARY_DLL OFF CACHE BOOL "" FORCE)  # match the static runtime above
 # X11 only by default (runs fine under XWayland). Pass -DGLFW_BUILD_WAYLAND=ON for native Wayland.
 set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "")
 FetchContent_Declare(glfw  GIT_REPOSITORY https://github.com/glfw/glfw.git   GIT_TAG 3.4)
@@ -101,8 +107,20 @@ else()
     list(APPEND APP_SOURCES "${DL_INCLUDE}/DeckLinkAPIDispatch.cpp")
 endif()
 
-add_executable(SdiMetaViewer ${APP_SOURCES})
+if(APPLE)
+    # A double-clickable .app; Info.plist carries the Local Network usage text macOS shows before the first send.
+    add_executable(SdiMetaViewer MACOSX_BUNDLE ${APP_SOURCES})
+    set_target_properties(SdiMetaViewer PROPERTIES
+        OUTPUT_NAME "SDI Metadata Viewer"
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/packaging/macos/Info.plist.in"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.nickdiacre.sdimetaviewer"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${SDIMETA_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${SDIMETA_VERSION}")
+else()
+    add_executable(SdiMetaViewer ${APP_SOURCES})
+endif()
 target_include_directories(SdiMetaViewer PRIVATE ${DL_INCLUDE} src)
+target_compile_definitions(SdiMetaViewer PRIVATE SDIMETA_VERSION="${SDIMETA_VERSION}")
 target_link_libraries(SdiMetaViewer PRIVATE sdimeta_core imgui_lib)
 
 # Headless check of which ANC / timecode / raw VANC data reaches the API.
@@ -115,10 +133,14 @@ target_link_libraries(sdimeta_probe PRIVATE sdimeta_core)
 foreach(t SdiMetaViewer sdimeta_probe)
     if(WIN32)
         target_link_libraries(${t} PRIVATE ole32 oleaut32)
-        set_property(TARGET ${t} PROPERTY WIN32_EXECUTABLE FALSE)
     elseif(APPLE)
         target_link_libraries(${t} PRIVATE "-framework CoreFoundation" "-framework Foundation" objc)
     else()
         target_link_libraries(${t} PRIVATE ${CMAKE_DL_LIBS} pthread)
     endif()
 endforeach()
+if(WIN32)
+    # GUI app without a console window; main() stays the entry point.
+    set_property(TARGET SdiMetaViewer PROPERTY WIN32_EXECUTABLE TRUE)
+    target_link_options(SdiMetaViewer PRIVATE /ENTRY:mainCRTStartup)
+endif()

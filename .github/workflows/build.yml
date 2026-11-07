@@ -1,0 +1,96 @@
+name: Build
+
+# Every push / PR: build + tests on macOS and Windows, zips kept as workflow artifacts.
+# Pushing a tag v* (e.g. v0.3.0) also publishes a GitHub release with both zips.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            name: macOS
+          - os: windows-2022
+            name: Windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF#refs/tags/v}"; else v="0.0.0-${GITHUB_SHA::7}"; fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+
+      - name: MSVC environment (for MIDL)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure (macOS, universal)
+        if: runner.os == 'macOS'
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSDIMETA_VERSION="$VERSION"
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DSDIMETA_VERSION="$env:VERSION"
+
+      - name: Build
+        run: cmake --build build --config Release -j 4
+
+      - name: Tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          d="dist/SDI-Metadata-Viewer"
+          mkdir -p "$d/sample-captures"
+          cp -R "build/SDI Metadata Viewer.app" "$d/"
+          codesign --force --deep -s - "$d/SDI Metadata Viewer.app"   # ad-hoc signature (not notarised)
+          cp build/sdimeta_probe packaging/README.txt "$d/"
+          grep -v '^#' packaging/samples.txt | xargs -I{} cp {} "$d/sample-captures/"
+          (cd dist && ditto -c -k --keepParent SDI-Metadata-Viewer "../SDI-Metadata-Viewer-$VERSION-macOS.zip")
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $d = "dist/SDI-Metadata-Viewer"
+          New-Item -ItemType Directory -Force "$d/sample-captures" | Out-Null
+          Copy-Item build/Release/SdiMetaViewer.exe, build/Release/sdimeta_probe.exe, packaging/README.txt $d
+          Get-Content packaging/samples.txt | Where-Object { $_ -and -not $_.StartsWith('#') } |
+            ForEach-Object { Copy-Item $_ "$d/sample-captures/" }
+          Compress-Archive -Path $d -DestinationPath "SDI-Metadata-Viewer-$env:VERSION-Windows.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SDI-Metadata-Viewer-${{ matrix.name }}
+          path: SDI-Metadata-Viewer-*.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: SDI-Metadata-Viewer-*.zip
+          generate_release_notes: true
+          body: |
+            Requires Blackmagic Desktop Video. See the [manual](https://github.com/nickdiacre/sdi-metadata-viewer/blob/main/docs/MANUAL.md).
+            macOS: not notarised; right-click the app > Open the first time. Windows: SmartScreen > More info > Run anyway.

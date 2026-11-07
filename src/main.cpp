@@ -4,6 +4,7 @@
 // the ARRI record flag, RP 188 timecode, Sony RDD 18 acquisition metadata and Blackmagic camera control.
 
 #include "anc/AncRegistry.h"
+#include "anc/CaptureReplay.h"
 #include "capture/Capture.h"
 #include "log/JsonLogger.h"
 #include "out/OutputManager.h"
@@ -33,6 +34,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -187,6 +190,14 @@ struct Preview {
 
 // ------------------------------------------------------------ UI panels
 
+// --screenshots <dir>: renders each tab in turn and saves it (for docs/MANUAL.md), then quits. Tabs are picked by name.
+const char* g_wantTab = nullptr;
+const char* g_wantSubTab = nullptr;
+ImGuiTabItemFlags tabFlags(const char* name, const char* want) {
+    return want && std::strcmp(name, want) == 0 ? ImGuiTabItemFlags_SetSelected : 0;
+}
+
+
 // Hex dump in a bordered child, with as many bytes per line as fit the width (multiple of 4), so it never scrolls
 // sideways. A line is "0000: " + 3 chars per byte + 2 + 1 char per byte.
 void drawHex(const char* id, const uint8_t* data, size_t len, float height) {
@@ -310,12 +321,16 @@ void drawAnc(const FrameMetadata& md, const std::map<uint16_t, PacketStats>& sta
     if (ImGui::BeginTable("anc", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
                           ImVec2(0, 240))) {
         ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("DID/SDID");
+        // Fixed widths (fitted to the header / typical value) so wrapped text never squeezes the description.
+        auto fixed = [](const char* name, const char* sample) {
+            ImGui::TableSetupColumn(name, ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize(sample).x);
+        };
+        fixed("DID/SDID", "DID/SDID");
         ImGui::TableSetupColumn("Description", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableSetupColumn("Line");
-        ImGui::TableSetupColumn("Str");
-        ImGui::TableSetupColumn("Bytes");
-        ImGui::TableSetupColumn("Count");
+        fixed("Line", "Line");
+        fixed("Str", "Str");
+        fixed("Bytes", "Bytes");
+        fixed("Count", "000000");
         ImGui::TableHeadersRow();
         for (const auto& [key, s] : stats) {
             uint8_t did = key >> 8, sdid = key & 0xFF;
@@ -362,10 +377,10 @@ void drawRdd18(const FrameMetadata& md, const RddHistory& hist) {
         std::snprintf(tid, sizeof tid, "rdd%zu", si);
         if (!ImGui::BeginTable(tid, 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_SizingStretchProp))
             continue;
-        ImGui::TableSetupColumn("Tag", ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn("Name");
+        ImGui::TableSetupColumn("Tag", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("0000").x);
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.5f);
         ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);
-        ImGui::TableSetupColumn("Chg", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Chg", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("0000").x);
         ImGui::TableHeadersRow();
         for (const auto& it : set.items) {
             auto h = hist.find(rdd18ItemKey(set, it.tag));
@@ -392,10 +407,10 @@ void drawBmd(const FrameMetadata& md, const RddHistory& hist) {
     ImGui::TextDisabled("Yellow = changed in the last 2 s. Hover a value for its raw bytes.");
     if (!ImGui::BeginTable("bmdcmds", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_SizingStretchProp))
         return;
-    ImGui::TableSetupColumn("Cmd", ImGuiTableColumnFlags_WidthFixed);
-    ImGui::TableSetupColumn("Name");
+    ImGui::TableSetupColumn("Cmd", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("00.00").x);
+    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.5f);
     ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);
-    ImGui::TableSetupColumn("Chg", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("Chg", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("0000").x);
     ImGui::TableHeadersRow();
     for (const auto& c : b.commands) {
         auto h = hist.find(uint32_t(c.category) << 8 | c.parameter);
@@ -422,10 +437,11 @@ void drawLogging(JsonLogger& logger, char* path, size_t pathSize, bool& raw) {
     bool open = logger.isOpen();
     ImGui::BeginDisabled(open);
     ImGui::InputText("File", path, pathSize);
+    if (!open && !std::filesystem::path(path).is_absolute()) ImGui::TextDisabled("Saved as %s", resolveUserPath(path).c_str());
     ImGui::Checkbox("Include raw ANC payloads", &raw);
     ImGui::EndDisabled();
     if (!open) {
-        if (ImGui::Button("Start logging") && !logger.open(path, raw))
+        if (ImGui::Button("Start logging") && !logger.open(resolveUserPath(path), raw))
             ImGui::OpenPopup("logerr");
     } else {
         if (ImGui::Button("Stop logging")) logger.close();
@@ -551,7 +567,7 @@ void drawOsc(OutputsUi& ui, const OutputManager::Status& st, const OutputManager
     if (ImGui::BeginTable("oscvars", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_SizingStretchProp)) {
         ImGui::TableSetupColumn("Send", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Address");
-        ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("string").x);
         ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 1.5f);
         ImGui::TableHeadersRow();
         const std::string pre = ui.oscPrefix;
@@ -653,7 +669,7 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
     }
 
     const bool needRed = manual.kind == CameraKind::Red;
-    const bool needSensor = (manual.kind != CameraKind::None && !manual.cameraHasSensor) || p.sensorOverride != SensorOverride::Off;
+    const bool needSensor = (manual.kind != CameraKind::None && !manual.cameraHasSensor) || p.sensorOverride == SensorOverride::Always;
     if ((needRed || needSensor) && ImGui::CollapsingHeader("Values the camera doesn't send", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (needRed) {
             ImGui::SeparatorText("RED clip name");
@@ -706,10 +722,10 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
     }
 
     if (ImGui::BeginTabBar("outputs")) {
-        if (ImGui::BeginTabItem("FreeD")) { drawFreeD(ui, st, out); ImGui::EndTabItem(); }
-        if (ImGui::BeginTabItem("OSC")) { drawOsc(ui, st, out); ImGui::EndTabItem(); }
-        if (ImGui::BeginTabItem("OpenTrackIO")) { drawOpenTrackIO(ui, st, out); ImGui::EndTabItem(); }
-        if (ImGui::BeginTabItem("Log file")) { drawLogging(logger, logPath, logPathSize, logRaw); ImGui::EndTabItem(); }
+        if (ImGui::BeginTabItem("FreeD", nullptr, tabFlags("FreeD", g_wantSubTab))) { drawFreeD(ui, st, out); ImGui::EndTabItem(); }
+        if (ImGui::BeginTabItem("OSC", nullptr, tabFlags("OSC", g_wantSubTab))) { drawOsc(ui, st, out); ImGui::EndTabItem(); }
+        if (ImGui::BeginTabItem("OpenTrackIO", nullptr, tabFlags("OpenTrackIO", g_wantSubTab))) { drawOpenTrackIO(ui, st, out); ImGui::EndTabItem(); }
+        if (ImGui::BeginTabItem("Log file", nullptr, tabFlags("Log file", g_wantSubTab))) { drawLogging(logger, logPath, logPathSize, logRaw); ImGui::EndTabItem(); }
         ImGui::EndTabBar();
     }
     return applied;
@@ -737,9 +753,33 @@ void preventAppNap() {
 std::atomic<bool> g_quit{false};
 void onSignal(int) { g_quit = true; }  // Ctrl-C in the terminal: leave the loop normally so settings are saved
 
+// Writes the current framebuffer as an uncompressed 32-bit TGA (bottom-up rows, as glReadPixels returns them).
+bool saveFramebufferTga(const std::string& path, int w, int h) {
+    std::vector<uint8_t> px(size_t(w) * h * 4);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    glReadBuffer(GL_BACK);
+    glReadPixels(0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, px.data());
+    for (size_t i = 3; i < px.size(); i += 4) px[i] = 255;
+    FILE* f = std::fopen(path.c_str(), "wb");
+    if (!f) return false;
+    const uint8_t hdr[18] = {0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, uint8_t(w), uint8_t(w >> 8), uint8_t(h), uint8_t(h >> 8), 32, 8};
+    std::fwrite(hdr, 1, sizeof hdr, f);
+    std::fwrite(px.data(), 1, px.size(), f);
+    std::fclose(f);
+    return true;
+}
+
+std::mutex g_dropMtx;
+std::string g_dropped;  // a file dropped on the window: replayed as a capture
+void onDrop(GLFWwindow*, int count, const char** paths) {
+    if (count < 1) return;
+    std::lock_guard<std::mutex> l(g_dropMtx);
+    g_dropped = paths[0];
+}
+
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
     dlp::initialise();
 #ifdef __APPLE__
     preventAppNap();
@@ -752,9 +792,13 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    GLFWwindow* window = glfwCreateWindow(1600, 900, "SDI Metadata Viewer", nullptr, nullptr);
+    // Screenshot mode uses a narrow window: replayed captures have no video, so the preview is kept small.
+    bool shotMode = false;
+    for (int i = 1; i < argc; ++i) shotMode |= std::strcmp(argv[i], "--screenshots") == 0;
+    GLFWwindow* window = glfwCreateWindow(shotMode ? 1000 : 1600, shotMode ? 1000 : 900, "SDI Metadata Viewer " SDIMETA_VERSION, nullptr, nullptr);
     if (!window) { glfwTerminate(); return 1; }
     glfwMakeContextCurrent(window);
+    glfwSetDropCallback(window, onDrop);
     glfwSwapInterval(1);
 
     IMGUI_CHECKVERSION();
@@ -775,7 +819,14 @@ int main() {
     // Restore the previous session's settings and start any outputs that were enabled.
     const std::string settingsPath = defaultSettingsPath();
     AppSettings app;
-    loadSettings(settingsPath, app);
+    const bool screenshots = shotMode;
+    if (screenshots) {
+        // Defaults, sending to this machine only: keeps the user's hosts out of the images and off their network.
+        app.outputs.freedEnabled = app.outputs.oscEnabled = app.outputs.otioEnabled = true;
+        app.outputs.otioMulticast = false;
+    } else {
+        loadSettings(settingsPath, app);
+    }
     outputs.apply(app.outputs);
     outputsUi.pending = app.outputs;
     std::snprintf(outputsUi.freedHost, sizeof outputsUi.freedHost, "%s", app.outputs.freedHost.c_str());
@@ -797,15 +848,38 @@ int main() {
     std::string lastError;
     char logPath[512];
     std::snprintf(logPath, sizeof logPath, "%s", app.logPath.c_str());
+    char replayPath[1024];
+    std::snprintf(replayPath, sizeof replayPath, "%s", app.replayPath.c_str());
+    bool replayAtLaunch = false;
+    std::string shotDir, shotPrefix = "shot";
+    for (int i = 1; i + 1 < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--replay") {
+            std::snprintf(replayPath, sizeof replayPath, "%s", argv[++i]);
+            replayAtLaunch = true;
+        }
+        else if (a == "--screenshots") shotDir = argv[++i];
+        else if (a == "--screenshot-prefix") shotPrefix = argv[++i];
+    }
+    struct Shot { const char* tab; const char* sub; const char* name; };
+    static const Shot kShots[] = {{"Summary", nullptr, "summary"}, {"Input", nullptr, "input"},
+                                  {"Output", "FreeD", "output-freed"}, {"Output", "OSC", "output-osc"},
+                                  {"Output", "OpenTrackIO", "output-opentrackio"}, {"Output", "Log file", "output-log"},
+                                  {"Raw", nullptr, "raw"}};
+    size_t shotIndex = 0;
+    double shotAt = 0;
     bool logRaw = app.logRaw;
     bool recFromTc = app.recFromTc;
     char redPosition[2] = {app.redPosition, 0};
     float panelW = app.panelWidth;
     preview.enabled = app.showVideo;
 
+    if (screenshots) panelW = 760.0f;
     auto save = [&] {
+        if (screenshots) return;  // don't overwrite the user's settings
         app.outputs = outputs.settings();
         app.logPath = logPath;
+        app.replayPath = replayPath;
         app.logRaw = logRaw;
         app.recFromTc = recFromTc;
         app.redPosition = redPosition[0] ? redPosition[0] : 'A';
@@ -853,8 +927,28 @@ int main() {
         shared.hasFrame = true;
     };
 
+    CaptureReplay replay(handler);
+    std::string replayError;
+    auto startReplay = [&] {
+        if (session) { session->stop(); session->Release(); session = nullptr; }
+        shared.reset();
+        replay.setRecFromTimecode(recFromTc);
+        replay.setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
+        if (replay.start(replayPath, replayError)) replayError.clear();
+        save();
+    };
+    if (replayAtLaunch) startReplay();
+
     while (!glfwWindowShouldClose(window) && !g_quit) {
         glfwPollEvents();
+        {
+            std::lock_guard<std::mutex> l(g_dropMtx);
+            if (!g_dropped.empty()) {
+                std::snprintf(replayPath, sizeof replayPath, "%s", g_dropped.c_str());
+                g_dropped.clear();
+                startReplay();
+            }
+        }
         preview.update(session);
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -880,6 +974,11 @@ int main() {
         }
         InputStatus st = session ? session->status() : InputStatus{};
         if (st.rateNum > 0) outputs.setVideoRate(st.rateNum, st.rateDen);
+        if (replay.running()) {
+            int num, den;
+            replay.videoRate(num, den);
+            outputs.setVideoRate(num, den);
+        }
 
         const ImGuiViewport* vp = ImGui::GetMainViewport();
         panelW = std::clamp(panelW, 320.0f, std::max(320.0f, vp->WorkSize.x - 240.0f));
@@ -898,7 +997,9 @@ int main() {
             ImGui::Text("%s  %ldx%ld  %s  |  %.2f fps measured", st.modeName.c_str(), st.width, st.height,
                         st.rgb444 ? "RGB 4:4:4" : "YUV 4:2:2", fps);
         ImVec2 avail = ImGui::GetContentRegionAvail();
-        if (st.running && st.noSignal) {
+        if (replay.running()) {
+            ImGui::TextDisabled("Replaying a capture: metadata only (capture files hold no video).");
+        } else if (st.running && st.noSignal) {
             ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "NO SIGNAL");
         } else if (preview.tex && preview.enabled && preview.w > 0) {
             float aspect = float(preview.w) / float(preview.h);
@@ -1009,7 +1110,7 @@ int main() {
                                            "a profile with more ports.");
 
             if (!session) {
-                ImGui::BeginDisabled(!port.active());
+                ImGui::BeginDisabled(!port.active() || replay.running());
                 if (ImGui::Button("Start capture")) {
                     shared.reset();
                     session = CaptureSession::create(devices->device(size_t(deviceIndex)), handler);
@@ -1027,11 +1128,31 @@ int main() {
             }
             if (!lastError.empty()) ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "%s", lastError.c_str());
             if (session) ImGui::Text("Frames: %llu", (unsigned long long)frames);
-            if (ImGui::Checkbox("Record state from running timecode", &recFromTc) && session)
-                session->setRecFromTimecode(recFromTc);
+            if (ImGui::Checkbox("Record state from running timecode", &recFromTc)) {
+                if (session) session->setRecFromTimecode(recFromTc);
+                replay.setRecFromTimecode(recFromTc);
+            }
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Used when the camera sends no record flag (Sony), and only after timecode has been\n"
                                   "seen stopped (proving Rec Run TC). In Free Run it is never used.");
+        }
+
+        // Replay a recorded capture (sdimeta_probe --raw) instead of a live input
+        if (!session && ImGui::CollapsingHeader("Replay a capture file", replay.running() ? ImGuiTreeNodeFlags_DefaultOpen : 0)) {
+            ImGui::TextDisabled("Plays back a capture recorded with sdimeta_probe --raw (e.g. the sample captures)\n"
+                                "through the same decoding and outputs, in a loop. You can also drop a file on the window.");
+            ImGui::BeginDisabled(replay.running());
+            ImGui::InputText("Capture file", replayPath, sizeof replayPath);
+            ImGui::EndDisabled();
+            if (!replay.running()) {
+                if (ImGui::Button("Replay")) startReplay();
+            } else {
+                if (ImGui::Button("Stop replay")) replay.stop();
+                ImGui::SameLine();
+                ImGui::Text("Frame %zu / %zu  (%.0f s at %.2f fps, looping)", replay.position() + 1, replay.frameCount(),
+                            replay.duration(), replay.fps());
+            }
+            if (!replayError.empty()) ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "%s", replayError.c_str());
         }
 
         ImGui::Separator();
@@ -1045,17 +1166,18 @@ int main() {
         manual.redPosition = redPosition;
         applySensorOverride(cs, outputs.settings());
         if (ImGui::BeginTabBar("tabs")) {
-            if (ImGui::BeginTabItem("Summary")) { drawSummary(md, hasFrame, cs); ImGui::EndTabItem(); }
-            if (ImGui::BeginTabItem("Input")) { drawInput(md, hasFrame, cs, rddHist, bmdHist); ImGui::EndTabItem(); }
-            if (ImGui::BeginTabItem("Output")) {
+            if (ImGui::BeginTabItem("Summary", nullptr, tabFlags("Summary", g_wantTab))) { drawSummary(md, hasFrame, cs); ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Input", nullptr, tabFlags("Input", g_wantTab))) { drawInput(md, hasFrame, cs, rddHist, bmdHist); ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Output", nullptr, tabFlags("Output", g_wantTab))) {
                 if (drawOutput(outputs, outputsUi, logger, logPath, sizeof logPath, logRaw, manual)) save();
                 if (manual.redPositionChanged) {
                     if (session) session->setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
+                    replay.setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
                     save();
                 }
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Raw")) { drawRaw(md, stats, selectedPacket); ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Raw", nullptr, tabFlags("Raw", g_wantTab))) { drawRaw(md, stats, selectedPacket); ImGui::EndTabItem(); }
             ImGui::EndTabBar();
         }
         ImGui::PopTextWrapPos();
@@ -1083,10 +1205,24 @@ int main() {
         glClearColor(0.08f, 0.08f, 0.09f, 1);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        if (screenshots) {
+            // Each tab is shown for 3 s (replayed data settles, tab switch takes a frame), then saved.
+            const double now = glfwGetTime();
+            if (shotAt == 0) shotAt = now + 3.0;
+            g_wantTab = kShots[shotIndex].tab;
+            g_wantSubTab = kShots[shotIndex].sub;
+            if (now >= shotAt) {
+                const std::string file = shotDir + "/" + shotPrefix + "-" + kShots[shotIndex].name + ".tga";
+                std::printf("%s %s\n", saveFramebufferTga(file, fbw, fbh) ? "saved" : "FAILED", file.c_str());
+                shotAt = now + 1.5;
+                if (++shotIndex == std::size(kShots)) g_quit = true;
+            }
+        }
         glfwSwapBuffers(window);
     }
 
     save();
+    replay.stop();
     if (session) { session->stop(); session->Release(); }
     logger.close();
     preview.release();

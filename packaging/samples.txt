@@ -1,0 +1,6 @@
+# Captures shipped in the release zip (sample-captures/), replayable in the app without a camera.
+captures/venice2_focus_rack_2026-10-21_raw.txt
+captures/venice2_V2-1-hanc_2026-10-22_raw.txt
+captures/minilf_rec_2026-10-21_raw.txt
+captures/red_raptor_RD-1-rec_2026-10-22_raw.txt
+captures/ursa_tests_2026-10-15_raw.txt

@@ -7,6 +7,7 @@ struct AppSettings {
     OutputSettings outputs;
     std::string logPath = "sdi_metadata_log.jsonl";
     bool logRaw = true;
+    std::string replayPath;  // last capture file replayed
     bool recFromTc = true;
     char redPosition = 'A';  // RED Camera Position letter used in clip names (not sent over SDI)
     std::string deviceName;   // last used input; matched by name on the next launch
@@ -18,6 +19,10 @@ struct AppSettings {
 // ~/Library/Application Support/SdiMetaViewer/settings.ini (macOS), %APPDATA%\SdiMetaViewer\settings.ini (Windows),
 // $XDG_CONFIG_HOME or ~/.config/sdimeta/settings.ini (Linux). Creates the directory when saving.
 std::string defaultSettingsPath();
+
+// A relative path (e.g. the default log file name) resolved against the user's Documents folder (home on Linux), so it
+// lands somewhere sensible however the app was launched (a macOS .app starts with the working directory at /).
+std::string resolveUserPath(const std::string& path);
 
 bool loadSettings(const std::string& path, AppSettings& s);  // false if the file is missing; unknown keys ignored
 bool saveSettings(const std::string& path, const AppSettings& s);
