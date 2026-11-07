@@ -18,9 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-latest
             name: macOS
-          - os: windows-2022
+          - os: windows-latest
             name: Windows
     runs-on: ${{ matrix.os }}
     steps:
@@ -44,7 +44,7 @@ jobs:
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
-        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DSDIMETA_VERSION="$env:VERSION"
+        run: cmake -S . -B build -A x64 -DSDIMETA_VERSION="$env:VERSION"
 
       - name: Build
         run: cmake --build build --config Release -j 4

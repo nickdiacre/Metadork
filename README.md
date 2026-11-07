@@ -7,6 +7,11 @@ carries the picture, instead of running extra data cables from the lens system.
 
 The camera is detected automatically and only the data it actually supplies is shown and sent.
 
+**Download:** macOS and Windows builds are on the [Releases page](../../releases). **Manual:** [docs/MANUAL.md](docs/MANUAL.md).
+No camera to hand? The release includes sample captures from real cameras you can replay in the app.
+
+![Summary tab](docs/images/venice2-summary.png)
+
 ## What each camera provides
 
 Verified on real hardware with an UltraStudio Express Recorder 3G and a DeckLink 8K Pro (DeckLink SDK 16, macOS).
@@ -52,18 +57,8 @@ All outputs send once per captured frame and can run at the same time. Settings 
 
 ## Using it
 
-1. Build (below) and run `SdiMetaViewer`.
-2. Pick the input and press **Start capture**.
-3. Tabs:
-   - **Summary**: detected camera, timecode, record state and every value in one table.
-   - **Input**: every decoded field for the detected camera; values that changed in the last 2 s turn yellow.
-   - **Output**: FreeD / OSC / OpenTrackIO / Log file. Set hosts and options, then **Apply**.
-   - **Raw**: every ANC packet with hex dumps.
-4. Settings (outputs, OSC variable choices, device, panel width, log path) are stored in
-   `~/Library/Application Support/SdiMetaViewer/settings.ini` (macOS), `%APPDATA%\SdiMetaViewer\settings.ini`
-   (Windows) or `~/.config/sdimeta/settings.ini` (Linux), and restored at launch.
-
-On macOS, allow **Local Network** access when prompted; without it network output fails silently.
+See the [manual](docs/MANUAL.md): install, capture, the tabs, each output, record state per camera, Stage Precision
+and Unreal setup, troubleshooting.
 
 ### `sdimeta_probe`: is the metadata actually arriving?
 
@@ -96,11 +91,12 @@ The raw VANC report tells "no ANC in the signal" (lines captured, blank) apart f
 
 ## Build
 
-Requirements: CMake 3.20+, a C++17 compiler, Git, the Blackmagic Desktop Video driver, and the **DeckLink SDK**
-(free from Blackmagic's support site). Builds against SDK 12 through 16. GLFW and Dear ImGui are fetched by CMake.
+Requirements: CMake 3.20+, a C++17 compiler and Git. The DeckLink SDK 16.0 headers are bundled in
+`third_party/decklink` (see its README); to use another SDK (12 to 16) pass `-DDECKLINK_SDK_DIR=/path/to/SDK`.
+GLFW and Dear ImGui are fetched by CMake. Running the app needs the Blackmagic Desktop Video driver.
 
 ```bash
-cmake -S . -B build -DDECKLINK_SDK_DIR="/path/to/Blackmagic DeckLink SDK 16.0"   # folder with Mac/ Win/ Linux/
+cmake -S . -B build
 cmake --build build --config Release
 
 # Parser tests only (no SDK, device or GPU needed)
@@ -108,10 +104,10 @@ cmake -S . -B build -DSDIMETA_BUILD_APP=OFF
 cmake --build build && ctest --test-dir build
 ```
 
-- **macOS:** Xcode command line tools. Output: `build/SdiMetaViewer`, `build/sdimeta_probe`.
+- **macOS:** Xcode command line tools. Output: `build/SDI Metadata Viewer.app`, `build/sdimeta_probe`.
 - **Windows:** Visual Studio 2022 with *Desktop development with C++*; run CMake from the *x64 Native Tools Command
   Prompt* so `midl.exe` (which generates the DeckLink COM headers) is on the PATH. Output: `build\Release\`.
-  Not yet built on Windows; please report any compile errors.
+  Built and tested in CI; not yet run against a DeckLink device on Windows, so please report problems.
 - **Linux:** X11 dev packages (`libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev`);
   `-DGLFW_BUILD_WAYLAND=ON` for native Wayland.
 
@@ -149,6 +145,17 @@ captures/      probe captures from real cameras (evidence for the decoders)
 `docs/METADATA.md` explains the master format and compares it with Pomfort Livegrade; `docs/COVERAGE.md` (generated)
 shows which camera supplies each field; `docs/TEST_PLAN.md` lists the tests that close the remaining gaps. `CLAUDE.md` holds the detailed reverse-engineering notes: field offsets, encodings, how each finding was verified,
 and the open issues.
+
+## Releases
+
+`.github/workflows/build.yml` builds macOS (universal) and Windows on every push and runs the tests. Pushing a tag
+`v*` publishes a release with both zips (app, `sdimeta_probe`, sample captures):
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+`tools/screenshots.sh` regenerates the manual's screenshots by replaying sample captures (`--screenshots` mode).
 
 ## Log format
 
