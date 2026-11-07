@@ -510,6 +510,7 @@ int listDevices() {
         d->Release();
     }
     iter->Release();
+    if (index == 0) std::printf("No DeckLink devices found (is the device connected and Desktop Video installed?)\n");
     return 0;
 }
 
