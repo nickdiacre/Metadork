@@ -67,7 +67,7 @@ and Blackmagic URSA.
   Replay feeds the live outputs too.
 - App `--screenshots <dir> [--screenshot-prefix p]`: default settings (outputs to 127.0.0.1), renders every tab, saves
   TGAs, quits. `tools/screenshots.sh` regenerates docs/images for docs/MANUAL.md from sample captures.
-- Release: `third_party/decklink` = SDK 16.0 include folders (EULA clause 0.1 exempts them; default DECKLINK_SDK_DIR).
+- MIT licence (LICENSE). Release: `third_party/decklink` = SDK 16.0 include folders (EULA clause 0.1 exempts them; default DECKLINK_SDK_DIR).
   macOS builds a .app (packaging/macos/Info.plist.in, NSLocalNetworkUsageDescription); Windows static CRT, no console.
   Relative log paths resolve to ~/Documents (`resolveUserPath`). `.github/workflows/build.yml`: macOS universal +
   Windows build/test/zip on every push; tag v* publishes a GitHub release (zips include packaging/samples.txt captures).

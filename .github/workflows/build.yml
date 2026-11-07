@@ -59,7 +59,7 @@ jobs:
           mkdir -p "$d/sample-captures"
           cp -R "build/SDI Metadata Viewer.app" "$d/"
           codesign --force --deep -s - "$d/SDI Metadata Viewer.app"   # ad-hoc signature (not notarised)
-          cp build/sdimeta_probe packaging/README.txt "$d/"
+          cp build/sdimeta_probe packaging/README.txt LICENSE "$d/"
           grep -v '^#' packaging/samples.txt | xargs -I{} cp {} "$d/sample-captures/"
           (cd dist && ditto -c -k --keepParent SDI-Metadata-Viewer "../SDI-Metadata-Viewer-$VERSION-macOS.zip")
 
@@ -69,7 +69,7 @@ jobs:
         run: |
           $d = "dist/SDI-Metadata-Viewer"
           New-Item -ItemType Directory -Force "$d/sample-captures" | Out-Null
-          Copy-Item build/Release/SdiMetaViewer.exe, build/Release/sdimeta_probe.exe, packaging/README.txt $d
+          Copy-Item build/Release/SdiMetaViewer.exe, build/Release/sdimeta_probe.exe, packaging/README.txt, LICENSE $d
           Get-Content packaging/samples.txt | Where-Object { $_ -and -not $_.StartsWith('#') } |
             ForEach-Object { Copy-Item $_ "$d/sample-captures/" }
           Compress-Archive -Path $d -DestinationPath "SDI-Metadata-Viewer-$env:VERSION-Windows.zip"

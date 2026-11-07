@@ -170,3 +170,9 @@ One JSON object per frame (Output → Log file), for example:
 ```
 
 `host_time` is a monotonic clock in seconds, useful for measuring latency against tracking data.
+
+## Licence
+
+MIT (see [LICENSE](LICENSE)). The bundled DeckLink SDK headers in `third_party/decklink` are Blackmagic Design's,
+under the notice in each file. Blackmagic, DeckLink, UltraStudio, ARRI, ALEXA, Sony, VENICE, BURANO, RED and URSA are
+trademarks of their owners; this project is not affiliated with or endorsed by them.
