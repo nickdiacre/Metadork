@@ -10,6 +10,11 @@ from the lens system.
 
 ![The Summary tab replaying a Sony VENICE 2](images/venice2-summary.png)
 
+The app is free and open source. If it's useful to you, you can
+<a href="https://buymeacoffee.com/nickdiacre">buy me a coffee</a>:
+
+<a href="https://buymeacoffee.com/nickdiacre"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="40"></a>
+
 - [What you need](#what-you-need)
 - [Install](#install)
 - [Try it without a camera](#try-it-without-a-camera)

@@ -18,3 +18,5 @@ Windows: SmartScreen may warn about an unrecognised app: More info > Run anyway.
 
 sdimeta_probe is a command-line diagnostic: it lists devices and prints which metadata packets reach the computer
 (sdimeta_probe --list, sdimeta_probe 10 --watch).
+
+Free and open source (MIT). If it's useful to you: https://buymeacoffee.com/nickdiacre

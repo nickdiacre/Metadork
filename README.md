@@ -10,6 +10,10 @@ The camera is detected automatically and only the data it actually supplies is s
 **Download:** macOS and Windows builds are on the [Releases page](../../releases). **Manual:** [docs/MANUAL.md](docs/MANUAL.md).
 No camera to hand? The release includes sample captures from real cameras you can replay in the app.
 
+If it's useful to you, you can support its development:
+
+<a href="https://buymeacoffee.com/nickdiacre"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="45"></a>
+
 ![Summary tab](docs/images/venice2-summary.png)
 
 ## What each camera provides
