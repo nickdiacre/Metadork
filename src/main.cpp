@@ -146,12 +146,18 @@ struct Preview {
     BgraFrame* bgra = nullptr;
     IDeckLinkVideoConversion* conv = nullptr;
     bool enabled = true;
+    double lastConvert = -1;
 
     void update(CaptureSession* s) {
         if (!s) return;
         IDeckLinkVideoInputFrame* f = s->takePreviewFrame();
         if (!f) return;
         if (!enabled || !conv || (f->GetFlags() & bmdFrameHasNoInputSource)) { f->Release(); return; }
+        // The SDK conversion (e.g. 10-bit Rec.2020 UHD -> 8-bit BGRA) can take most of a frame on the UI thread, which made
+        // the whole UI sluggish. The preview is a thumbnail, so ~10 fps is plenty; metadata runs on the capture thread.
+        const double now = glfwGetTime();
+        if (lastConvert >= 0 && now - lastConvert < 0.1) { f->Release(); return; }
+        lastConvert = now;
         long fw = f->GetWidth(), fh = f->GetHeight();
         if (!bgra || fw != w || fh != h) {
             if (bgra) bgra->Release();
