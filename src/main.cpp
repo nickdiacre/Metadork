@@ -296,7 +296,7 @@ void drawArri(const FrameMetadata& md) {
         row("Reel (new / old)", a.reelName + "  /  " + a.reelNameOld);
         row("Clip (new / old)", a.clipName + "  /  " + a.clipNameOld);
         row("Scene / Take", a.scene + "  /  " + a.take + (a.circleTake ? "  (circled)" : ""));
-        row("Focus raw / unit", std::to_string(a.focusRaw) + (a.lensDistanceUnit == 0 ? "  (1/1000 in)" : "  (mm)"));
+        row("Focus raw", std::to_string(a.focusRaw) + " mm  (camera display unit: " + (a.lensDistanceUnit == 0 ? "imperial)" : "metric)"));
         row("Focal length", fmt("%.3f mm", a.focalLengthMm));
         row("Iris raw", std::to_string(a.irisRaw) + "  -> " + irisString(a));
         row("Enc focus  LDS / motor", std::to_string(a.rawFocusLds) + "  /  " + std::to_string(a.rawFocusMotor));
