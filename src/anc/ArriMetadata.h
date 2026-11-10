@@ -35,7 +35,7 @@ struct ArriMetadata {
     double pixelAspect = 0;       // ICI18 at 0x0C4, float: 1.0 spherical, 1.25..2.0 anamorphic desqueeze (0 = n/a)
 
     // Lens (FIZ)
-    uint32_t lensDistanceUnit = 0;  // 0 = inch, 1 = metric
+    uint32_t lensDistanceUnit = 0;  // 0 = inch, 1 = metric (ALEXA 265 sends 0 with mm values, see .cpp)
     int32_t focusRaw = 0;
     bool focusValid = false;
     bool focusInfinite = false;

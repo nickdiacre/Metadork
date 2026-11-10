@@ -111,7 +111,10 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
    recognises the mode (sensor_mode + sensor size, derived / inferred) only when the active image is boxed inside the
    SDI frame (IDI02/03) AND its aspect (or aspect / squeeze) matches exactly one mode of that body; otherwise a note
    lists the candidates and the manual setting (Output tab: off / when missing / always, presets) is used. ALEXA 265
-   (camera type 11) gave 1744x824 = 6.5K 2.12:1 Open Gate on 2026-10-27, but 1920x1080 on 2026-10-26 (no guess). The SDI image doesn't reveal crop modes either (the recorded area is scaled to fill it). Frame line file name e.g.
+   (camera type 11) gave 1744x824 = 6.5K 2.12:1 Open Gate on 2026-10-27, but 1920x1080 on 2026-10-26 (no guess). ALEXA 265
+   (SUP 5.02, Panavision UP2 50) sends lens distance unit 0x374 = 0 ("inch") but focus 0x378 in mm: camera HUD 14'6" =
+   raw 4420 (2026-11-10); the Mini LF sends unit 1 + mm. The decoder ignores the unit for camera type 11. Untested whether
+   the 265's flag follows its display-unit setting. The SDI image doesn't reveal crop modes either (the recorded area is scaled to fill it). Frame line file name e.g.
    "ARRI LFOG 1.78" hints the format but is user-named. UMID 0x27C all FF.
    Pixel aspect / anamorphic squeeze (ICI18, 0x0C4) is an IEEE float: 0x3F800000 = 1.0 with a spherical lens;
    anamorphic values (1.25..2.0) not yet seen on hardware. Output as OSC /squeeze and OpenTrackIO

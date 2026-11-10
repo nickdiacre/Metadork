@@ -138,6 +138,15 @@ int main() {
     md = proc.process(std::move(p2), tc, false, 1.08);
     CHECK(md.hasArri && std::fabs(md.arri.focusMm - 3048.0) < 1e-6);
     CHECK(md.tcAdvancing);
+    // ALEXA 265 sends unit 0 ("inch") with the value in mm (14'6" on the camera = raw 4420)
+    {
+        auto b265 = blk;
+        put32(b265, 0x0164, 11);
+        put32(b265, 0x0378, 4420);
+        MetadataProcessor p265;
+        FrameMetadata m265 = p265.process(makeArriPackets(b265, 3), tc, false, 0);
+        CHECK(m265.hasArri && m265.arri.cameraTypeName == "ALEXA 265" && std::fabs(m265.arri.focusMm - 4420.0) < 1e-6);
+    }
 
     // Missing segment -> incomplete, no ARRI decode
     auto p3 = makeArriPackets(blk, 1);

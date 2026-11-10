@@ -114,8 +114,9 @@ bool parseArriBlock(const uint8_t* value, size_t size, ArriMetadata& m) {
         m.focusMm = INFINITY;
     } else if (m.focusRaw > 0) {
         m.focusValid = true;
-        // Unit 0 = 1/1000 inch, otherwise mm.
-        m.focusMm = (m.lensDistanceUnit == 0) ? m.focusRaw * 0.0254 : double(m.focusRaw);
+        // White paper: unit 0 = 1/1000 inch, 1 = mm. The ALEXA 265 (SUP 5.02) sends unit 0 but the value in mm: raw
+        // 4420 with the camera showing 14'6" (= 4420 mm), 2026-11-10. So mm for the 265 whatever the unit says.
+        m.focusMm = (m.lensDistanceUnit == 0 && m.cameraTypeId != 11) ? m.focusRaw * 0.0254 : double(m.focusRaw);
     }
     uint32_t focal = r.u32(0x037C);
     m.focalLengthMm = focal ? focal / 1000.0 : NAN;
