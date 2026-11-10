@@ -79,8 +79,9 @@ and Blackmagic URSA.
   and raw VANC lines (zero vs black vs ADF), with optional payload hex dump.
 - `src/main.cpp`: GLFW + Dear ImGui UI. Tabs: Summary (catalogue), Input (decoded fields of the detected camera,
   TC/record state), Output ("Values the camera doesn't send" section shown only when needed: RED position letter, sensor size; then FreeD | OSC | OpenTrackIO | Log file sub-tabs, one Apply), Raw (ANC packets, hex, RDD 18
-  stream). Preview frames are converted to BGRA with IDeckLinkVideoConversion
-  and drawn as a GL texture. The SDK 12 GL preview helper was avoided because it is fixed-function and
+  stream). Preview: 10-bit YUV (v210) frames are uploaded as an RGB10_A2 texture and unpacked +
+  colour-converted (601/709/2020 -> 709) in a GLSL 150 shader into an FBO texture, every frame (GL 2+ entry points loaded
+  with glfwGetProcAddress). Other formats fall back to IDeckLinkVideoConversion at ~10 fps (CPU; ~40 ms per UHD frame). The SDK 12 GL preview helper was avoided because it is fixed-function and
   incompatible with the GL 3.2 core context macOS requires.
 
 ## Key spec facts (ARRI SDI Metadata white paper, July 2023)

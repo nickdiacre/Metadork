@@ -141,52 +141,236 @@ std::string irisString(const ArriMetadata& a) {
 // ------------------------------------------------------------ preview texture
 
 struct Preview {
-    GLuint tex = 0;
+    GLuint tex = 0;  // RGBA8 texture drawn by ImGui (the GPU path renders into it, the SDK path uploads into it)
     long w = 0, h = 0;
     BgraFrame* bgra = nullptr;
     IDeckLinkVideoConversion* conv = nullptr;
     bool enabled = true;
+    bool gpu = false;        // the last frame went through the shader
     double lastConvert = -1;
 
-    void update(CaptureSession* s) {
-        if (!s) return;
-        IDeckLinkVideoInputFrame* f = s->takePreviewFrame();
-        if (!f) return;
-        if (!enabled || !conv || (f->GetFlags() & bmdFrameHasNoInputSource)) { f->Release(); return; }
-        // The SDK conversion (e.g. 10-bit Rec.2020 UHD -> 8-bit BGRA) can take most of a frame on the UI thread, which made
-        // the whole UI sluggish. The preview is a thumbnail, so ~10 fps is plenty; metadata runs on the capture thread.
-        const double now = glfwGetTime();
-        if (lastConvert >= 0 && now - lastConvert < 0.1) { f->Release(); return; }
-        lastConvert = now;
-        long fw = f->GetWidth(), fh = f->GetHeight();
-        if (!bgra || fw != w || fh != h) {
-            if (bgra) bgra->Release();
-            bgra = new BgraFrame(fw, fh);
-        }
-        HRESULT hr = conv->ConvertFrame(f, bgra);
-        f->Release();
-        if (hr != S_OK) return;
+    // GPU path for 10-bit YUV (v210), the format the capture asks for: the packed words are uploaded as an RGB10_A2 texture
+    // (one texel per 32-bit word, r/g/b = its three 10-bit samples) and a shader unpacks + colour-converts every frame.
+    // The SDK's CPU converter needed ~40 ms for a UHD frame (one core), too slow for full frame rate.
+    struct Gl {
+        GLuint (*CreateShader)(GLenum);
+        void (*ShaderSource)(GLuint, GLsizei, const char* const*, const GLint*);
+        void (*CompileShader)(GLuint);
+        void (*GetShaderiv)(GLuint, GLenum, GLint*);
+        GLuint (*CreateProgram)();
+        void (*AttachShader)(GLuint, GLuint);
+        void (*LinkProgram)(GLuint);
+        void (*GetProgramiv)(GLuint, GLenum, GLint*);
+        void (*UseProgram)(GLuint);
+        GLint (*GetUniformLocation)(GLuint, const char*);
+        void (*Uniform1i)(GLint, GLint);
+        void (*Uniform2i)(GLint, GLint, GLint);
+        void (*GenVertexArrays)(GLsizei, GLuint*);
+        void (*BindVertexArray)(GLuint);
+        void (*GenFramebuffers)(GLsizei, GLuint*);
+        void (*BindFramebuffer)(GLenum, GLuint);
+        void (*FramebufferTexture2D)(GLenum, GLenum, GLenum, GLuint, GLint);
+        GLenum (*CheckFramebufferStatus)(GLenum);
+        void (*DeleteFramebuffers)(GLsizei, const GLuint*);
+        void (*DeleteProgram)(GLuint);
+        void (*ActiveTexture)(GLenum);
+    } gl{};
+    bool glOk = false;
+    GLuint prog = 0, vao = 0, fbo = 0, srcTex = 0;
+    GLint uSrc = -1, uSize = -1, uMatrix = -1;
+    long srcW = 0, srcH = 0;
 
+    static constexpr GLenum kRgb10A2 = 0x8059, kUint2101010Rev = 0x8368, kFramebuffer = 0x8D40, kColor0 = 0x8CE0,
+                            kComplete = 0x8CD5, kVertex = 0x8B31, kFragment = 0x8B30, kCompiled = 0x8B81,
+                            kLinked = 0x8B82, kTexture0 = 0x84C0, kClampToEdge = 0x812F;
+
+    void initGpu() {
+        auto load = [](const char* n) { return glfwGetProcAddress(n); };
+#define SDIMETA_GL(name) gl.name = reinterpret_cast<decltype(gl.name)>(load("gl" #name)); if (!gl.name) return;
+        SDIMETA_GL(CreateShader) SDIMETA_GL(ShaderSource) SDIMETA_GL(CompileShader) SDIMETA_GL(GetShaderiv)
+        SDIMETA_GL(CreateProgram) SDIMETA_GL(AttachShader) SDIMETA_GL(LinkProgram) SDIMETA_GL(GetProgramiv)
+        SDIMETA_GL(UseProgram) SDIMETA_GL(GetUniformLocation) SDIMETA_GL(Uniform1i) SDIMETA_GL(Uniform2i)
+        SDIMETA_GL(GenVertexArrays) SDIMETA_GL(BindVertexArray) SDIMETA_GL(GenFramebuffers) SDIMETA_GL(BindFramebuffer)
+        SDIMETA_GL(FramebufferTexture2D) SDIMETA_GL(CheckFramebufferStatus) SDIMETA_GL(DeleteFramebuffers)
+        SDIMETA_GL(DeleteProgram) SDIMETA_GL(ActiveTexture)
+#undef SDIMETA_GL
+        static const char* vs = R"(#version 150
+void main() {
+    vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);  // one triangle covering the viewport
+    gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+})";
+        // v210: 4 words carry 6 pixels.  w0 = Cb0 Y0 Cr0 | w1 = Y1 Cb2 Y2 | w2 = Cr2 Y3 Cb4 | w3 = Y4 Cr4 Y5
+        static const char* fs = R"(#version 150
+uniform sampler2D src;
+uniform ivec2 size;   // output width, height
+uniform int matrix;   // 0 = Rec.601, 1 = Rec.709, 2 = Rec.2020 (shown as Rec.709)
+out vec4 color;
+vec3 w(int i, int y) { return texelFetch(src, ivec2(i, y), 0).rgb * 1023.0; }
+vec3 toLinear(vec3 v) { return mix(v / 4.5, pow((v + 0.099) / 1.099, vec3(1.0 / 0.45)), step(0.081, v)); }
+vec3 toGamma(vec3 v) { return mix(v * 4.5, 1.099 * pow(v, vec3(0.45)) - 0.099, step(0.018, v)); }
+void main() {
+    int x = int(gl_FragCoord.x), y = int(gl_FragCoord.y);  // row 0 = top of the picture, as ImGui samples it
+    int g = (x / 6) * 4, i = x - (x / 6) * 6;
+    vec3 a = w(g, y), b = w(g + 1, y), c = w(g + 2, y), d = w(g + 3, y);
+    float Y = i == 0 ? a.g : i == 1 ? b.r : i == 2 ? b.b : i == 3 ? c.g : i == 4 ? d.r : d.b;
+    int p = i / 2;
+    float Cb = p == 0 ? a.r : p == 1 ? b.g : c.b;
+    float Cr = p == 0 ? a.b : p == 1 ? c.r : d.g;
+    float yy = (Y - 64.0) / 876.0, cb = (Cb - 512.0) / 896.0, cr = (Cr - 512.0) / 896.0;
+    vec3 rgb;
+    if (matrix == 0)      rgb = vec3(yy + 1.402 * cr,  yy - 0.344136 * cb - 0.714136 * cr, yy + 1.772 * cb);
+    else if (matrix == 1) rgb = vec3(yy + 1.5748 * cr, yy - 0.187324 * cb - 0.468124 * cr, yy + 1.8556 * cb);
+    else {
+        rgb = vec3(yy + 1.4746 * cr, yy - 0.164553 * cb - 0.571353 * cr, yy + 1.8814 * cb);
+        vec3 l = toLinear(clamp(rgb, 0.0, 1.0));
+        l = mat3(1.6605, -0.1246, -0.0182, -0.5876, 1.1329, -0.1006, -0.0728, -0.0083, 1.1187) * l;  // BT.2020 -> BT.709
+        rgb = toGamma(clamp(l, 0.0, 1.0));
+    }
+    color = vec4(clamp(rgb, 0.0, 1.0), 1.0);
+})";
+        auto compile = [&](GLenum type, const char* src) -> GLuint {
+            GLuint s = gl.CreateShader(type);
+            gl.ShaderSource(s, 1, &src, nullptr);
+            gl.CompileShader(s);
+            GLint ok = 0;
+            gl.GetShaderiv(s, kCompiled, &ok);
+            return ok ? s : 0;
+        };
+        GLuint v = compile(kVertex, vs), f = compile(kFragment, fs);
+        if (!v || !f) return;
+        prog = gl.CreateProgram();
+        gl.AttachShader(prog, v);
+        gl.AttachShader(prog, f);
+        gl.LinkProgram(prog);
+        GLint ok = 0;
+        gl.GetProgramiv(prog, kLinked, &ok);
+        if (!ok) return;
+        uSrc = gl.GetUniformLocation(prog, "src");
+        uSize = gl.GetUniformLocation(prog, "size");
+        uMatrix = gl.GetUniformLocation(prog, "matrix");
+        gl.GenVertexArrays(1, &vao);
+        gl.GenFramebuffers(1, &fbo);
+        glOk = true;
+    }
+
+    void ensureTex(long fw, long fh) {
         if (!tex) {
             glGenTextures(1, &tex);
             glBindTexture(GL_TEXTURE_2D, tex);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         }
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
         if (fw != w || fh != h) {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fw, fh, 0, GL_BGRA, GL_UNSIGNED_BYTE, bgra->data());
+            glBindTexture(GL_TEXTURE_2D, tex);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, fw, fh, 0, GL_BGRA, GL_UNSIGNED_BYTE, nullptr);
             w = fw;
             h = fh;
-        } else {
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, fw, fh, GL_BGRA, GL_UNSIGNED_BYTE, bgra->data());
         }
+    }
+
+    // Returns false when the frame can't go through the shader (then the SDK converter is used).
+    bool convertGpu(IDeckLinkVideoInputFrame* f) {
+        if (!glOk || f->GetPixelFormat() != bmdFormat10BitYUV) return false;
+        const long fw = f->GetWidth(), fh = f->GetHeight(), rb = f->GetRowBytes();
+        if (rb % 4 || rb / 4 < (fw + 5) / 6 * 4) return false;
+        int matrix = fh < 720 ? 0 : 1;
+        IDeckLinkVideoFrameMetadataExtensions* meta = nullptr;
+        if (f->QueryInterface(IID_IDeckLinkVideoFrameMetadataExtensions, (void**)&meta) == S_OK && meta) {
+            int64_t cs = 0;
+            if (meta->GetInt(bmdDeckLinkFrameMetadataColorspace, &cs) == S_OK)
+                matrix = cs == bmdColorspaceRec2020 ? 2 : cs == bmdColorspaceRec601 ? 0 : 1;
+            meta->Release();
+        }
+        void* bytes = nullptr;
+#if SDIMETA_HAS_VIDEO_BUFFER
+        IDeckLinkVideoBuffer* buf = nullptr;
+        if (f->QueryInterface(IID_IDeckLinkVideoBuffer, (void**)&buf) != S_OK || !buf) return false;
+        if (buf->StartAccess(bmdBufferAccessRead) != S_OK) { buf->Release(); return false; }
+        buf->GetBytes(&bytes);
+#else
+        f->GetBytes(&bytes);
+#endif
+        bool ok = bytes != nullptr;
+        if (ok) {
+            if (!srcTex) {
+                glGenTextures(1, &srcTex);
+                glBindTexture(GL_TEXTURE_2D, srcTex);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, kClampToEdge);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, kClampToEdge);
+            }
+            gl.ActiveTexture(kTexture0);
+            glBindTexture(GL_TEXTURE_2D, srcTex);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+            if (rb / 4 != srcW || fh != srcH) {
+                glTexImage2D(GL_TEXTURE_2D, 0, kRgb10A2, rb / 4, fh, 0, GL_RGBA, kUint2101010Rev, bytes);
+                srcW = rb / 4;
+                srcH = fh;
+            } else {
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rb / 4, fh, GL_RGBA, kUint2101010Rev, bytes);
+            }
+        }
+#if SDIMETA_HAS_VIDEO_BUFFER
+        buf->EndAccess(bmdBufferAccessRead);
+        buf->Release();
+#endif
+        if (!ok) return false;
+
+        ensureTex(fw, fh);
+        gl.BindFramebuffer(kFramebuffer, fbo);
+        gl.FramebufferTexture2D(kFramebuffer, kColor0, GL_TEXTURE_2D, tex, 0);
+        if (gl.CheckFramebufferStatus(kFramebuffer) != kComplete) {
+            gl.BindFramebuffer(kFramebuffer, 0);
+            glOk = false;  // fall back to the SDK converter from now on
+            return false;
+        }
+        glViewport(0, 0, GLsizei(fw), GLsizei(fh));
+        glDisable(GL_BLEND);
+        glDisable(GL_SCISSOR_TEST);
+        gl.UseProgram(prog);
+        gl.Uniform1i(uSrc, 0);
+        gl.Uniform2i(uSize, GLint(fw), GLint(fh));
+        gl.Uniform1i(uMatrix, matrix);
+        gl.BindVertexArray(vao);
+        glBindTexture(GL_TEXTURE_2D, srcTex);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        gl.BindVertexArray(0);
+        gl.UseProgram(0);
+        gl.BindFramebuffer(kFramebuffer, 0);
+        return true;
+    }
+
+    void update(CaptureSession* s) {
+        if (!s) return;
+        IDeckLinkVideoInputFrame* f = s->takePreviewFrame();
+        if (!f) return;
+        if (!enabled || (f->GetFlags() & bmdFrameHasNoInputSource)) { f->Release(); return; }
+        if (convertGpu(f)) { gpu = true; f->Release(); return; }
+        gpu = false;
+        // SDK converter (CPU, slow for UHD): limited to ~10 fps so it doesn't stall the UI.
+        const double now = glfwGetTime();
+        if (!conv || (lastConvert >= 0 && now - lastConvert < 0.1)) { f->Release(); return; }
+        lastConvert = now;
+        long fw = f->GetWidth(), fh = f->GetHeight();
+        if (!bgra || bgra->GetWidth() != fw || bgra->GetHeight() != fh) {
+            if (bgra) bgra->Release();
+            bgra = new BgraFrame(fw, fh);
+        }
+        HRESULT hr = conv->ConvertFrame(f, bgra);
+        f->Release();
+        if (hr != S_OK) return;
+        ensureTex(fw, fh);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, fw, fh, GL_BGRA, GL_UNSIGNED_BYTE, bgra->data());
     }
 
     void release() {
         if (tex) glDeleteTextures(1, &tex);
-        tex = 0;
+        if (srcTex) glDeleteTextures(1, &srcTex);
+        tex = srcTex = 0;
+        if (glOk) { gl.DeleteFramebuffers(1, &fbo); gl.DeleteProgram(prog); }
         if (bgra) bgra->Release();
         bgra = nullptr;
         if (conv) conv->Release();
@@ -821,6 +1005,7 @@ int main(int argc, char** argv) {
     OutputsUi outputsUi;
     Preview preview;
     preview.conv = dlp::createVideoConversion();
+    preview.initGpu();
 
     // Restore the previous session's settings and start any outputs that were enabled.
     const std::string settingsPath = defaultSettingsPath();
