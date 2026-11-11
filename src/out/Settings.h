@@ -31,9 +31,10 @@ struct AppSettings {
 // number and log file, so a second camera never collides with the first in a receiver.
 FeedSettings newFeedSettings(const std::vector<FeedSettings>& existing, const FeedSettings& from);
 
-// ~/Library/Application Support/SdiMetaViewer/settings.ini (macOS), %APPDATA%\SdiMetaViewer\settings.ini (Windows),
-// $XDG_CONFIG_HOME or ~/.config/sdimeta/settings.ini (Linux). Creates the directory when saving.
+// ~/Library/Application Support/Metadork/settings.ini (macOS), %APPDATA%\Metadork\settings.ini (Windows),
+// $XDG_CONFIG_HOME or ~/.config/metadork/settings.ini (Linux). Creates the directory when saving.
 std::string defaultSettingsPath();
+std::string legacySettingsPath();  // the same file under the old SDI Metadata Viewer folder, read if the new one is missing
 
 // A relative path (e.g. the default log file name) resolved against the user's Documents folder (home on Linux), so it
 // lands somewhere sensible however the app was launched (a macOS .app starts with the working directory at /).

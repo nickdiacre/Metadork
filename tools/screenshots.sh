@@ -3,7 +3,7 @@
 # --screenshots mode (each tab rendered and saved in turn; no camera or DeckLink needed). macOS: uses sips for PNG.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-APP=${APP:-"./build/SDI Metadata Viewer.app/Contents/MacOS/SDI Metadata Viewer"}
+APP=${APP:-"./build/Metadork.app/Contents/MacOS/Metadork"}
 OUT=docs/images
 TMP=$(mktemp -d)
 mkdir -p "$OUT"

@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
 
     if (!jsonOut.empty()) {
         std::ofstream o(jsonOut);
-        o << "{\n  \"description\": \"SDI Metadata Viewer master field registry (generated from src/meta/Fields.def)\",\n"
+        o << "{\n  \"description\": \"Metadork master field registry (generated from src/meta/Fields.def)\",\n"
              "  \"fields\": [\n";
         const auto& fs = allFields();
         for (size_t i = 0; i < fs.size(); ++i) {

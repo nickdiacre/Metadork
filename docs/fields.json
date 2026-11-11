@@ -1,5 +1,5 @@
 {
-  "description": "SDI Metadata Viewer master field registry (generated from src/meta/Fields.def)",
+  "description": "Metadork master field registry (generated from src/meta/Fields.def)",
   "fields": [
     {"id": "camera", "group": "Identity", "label": "Camera", "unit": "", "type": "string", "livegrade": "Camera Model", "opentrackio": "static.camera.make + model", "freed": "", "osc": "<prefix>/camera"},
     {"id": "camera_make", "group": "Identity", "label": "Camera make", "unit": "", "type": "string", "livegrade": "", "opentrackio": "static.camera.make", "freed": "", "osc": "<prefix>/camera_make"},

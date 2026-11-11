@@ -582,7 +582,7 @@ int main(int argc, char** argv) {
     Probe probe(in, st);
     in->SetCallback(&probe);
     if (in->EnableVideoInput(bmdModeHD1080p25, bmdFormat10BitYUV, bmdVideoInputEnableFormatDetection) != S_OK) {
-        std::fprintf(stderr, "EnableVideoInput failed: is the SdiMetaViewer (or another app) holding the input?\n");
+        std::fprintf(stderr, "EnableVideoInput failed: is Metadork (or another app) holding the input?\n");
         return 1;
     }
     in->StartStreams();

@@ -55,29 +55,29 @@ jobs:
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: |
-          d="dist/SDI-Metadata-Viewer"
+          d="dist/Metadork"
           mkdir -p "$d/sample-captures"
-          cp -R "build/SDI Metadata Viewer.app" "$d/"
-          codesign --force --deep -s - "$d/SDI Metadata Viewer.app"   # ad-hoc signature (not notarised)
+          cp -R "build/Metadork.app" "$d/"
+          codesign --force --deep -s - "$d/Metadork.app"   # ad-hoc signature (not notarised)
           cp build/sdimeta_probe packaging/README.txt LICENSE "$d/"
           grep -v '^#' packaging/samples.txt | xargs -I{} cp {} "$d/sample-captures/"
-          (cd dist && ditto -c -k --keepParent SDI-Metadata-Viewer "../SDI-Metadata-Viewer-$VERSION-macOS.zip")
+          (cd dist && ditto -c -k --keepParent Metadork "../Metadork-$VERSION-macOS.zip")
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $d = "dist/SDI-Metadata-Viewer"
+          $d = "dist/Metadork"
           New-Item -ItemType Directory -Force "$d/sample-captures" | Out-Null
-          Copy-Item build/Release/SdiMetaViewer.exe, build/Release/sdimeta_probe.exe, packaging/README.txt, LICENSE $d
+          Copy-Item build/Release/Metadork.exe, build/Release/sdimeta_probe.exe, packaging/README.txt, LICENSE $d
           Get-Content packaging/samples.txt | Where-Object { $_ -and -not $_.StartsWith('#') } |
             ForEach-Object { Copy-Item $_ "$d/sample-captures/" }
-          Compress-Archive -Path $d -DestinationPath "SDI-Metadata-Viewer-$env:VERSION-Windows.zip"
+          Compress-Archive -Path $d -DestinationPath "Metadork-$env:VERSION-Windows.zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SDI-Metadata-Viewer-${{ matrix.name }}
-          path: SDI-Metadata-Viewer-*.zip
+          name: Metadork-${{ matrix.name }}
+          path: Metadork-*.zip
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -89,7 +89,7 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          files: SDI-Metadata-Viewer-*.zip
+          files: Metadork-*.zip
           generate_release_notes: true
           body: |
             Requires Blackmagic Desktop Video. See the [manual](https://github.com/nickdiacre/sdi-metadata-viewer/blob/main/docs/MANUAL.md).

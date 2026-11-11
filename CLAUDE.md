@@ -1,4 +1,4 @@
-# SDI Metadata Viewer: project context
+# Metadork (formerly SDI Metadata Viewer): project context
 
 ## Goal
 Capture per-frame camera metadata (focus/iris/zoom, timecode, record state, reel/clip names) from the
@@ -57,8 +57,8 @@ and Blackmagic URSA.
     2 s). OpenTrackIO output validated against the official schema (2026-10-21). Transform (tilt only) is opt-in
     because zero pan/position would override a real tracker; focal length goes out as pinholeFocalLength (nominal).
   - `Settings`: all UI settings (outputs incl. OSC variable choices, log, device, panel width) as key=value in
-    ~/Library/Application Support/SdiMetaViewer/settings.ini (macOS) / %APPDATA%\SdiMetaViewer (Windows) /
-    ~/.config/sdimeta (Linux). Saved on any output change, port change, splitter release and exit (incl. Ctrl-C); restored and
+    ~/Library/Application Support/Metadork/settings.ini (macOS) / %APPDATA%\Metadork (Windows) /
+    ~/.config/metadork (Linux). Saved on any output change, port change, splitter release and exit (incl. Ctrl-C); restored and
     applied at launch, so enabled outputs start sending immediately.
   - `UdpSender` (POSIX + Winsock), `OutputManager` (sends on every captured frame; needs the video rate for timing).
   - macOS asks for Local Network permission the first time the app sends; sends fail silently until granted.
@@ -240,7 +240,7 @@ https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-
 ```bash
 cmake -S . -B build          # bundled SDK 16.0 headers; -DDECKLINK_SDK_DIR=... for another SDK
 cmake --build build -j
-open "build/SDI Metadata Viewer.app"   # Windows: build\Release\SdiMetaViewer.exe (x64 Native Tools prompt, for MIDL)
+open "build/Metadork.app"   # Windows: build\Release\Metadork.exe (x64 Native Tools prompt, for MIDL)
 # Tests only, no SDK needed:
 cmake -S . -B build -DSDIMETA_BUILD_APP=OFF && cmake --build build && ctest --test-dir build
 ```

@@ -1,6 +1,6 @@
-# SDI Metadata Viewer: user manual
+# Metadork: user manual
 
-SDI Metadata Viewer reads the metadata a cinema camera embeds in its SDI output (lens focus, iris and focal length,
+Metadork reads the metadata a cinema camera embeds in its SDI output (lens focus, iris and focal length,
 timecode, record state, clip name, tilt and roll, exposure settings and more) through a Blackmagic DeckLink or
 UltraStudio capture device. It sends that data on to **Stage Precision**, **Unreal Engine** or anything else that
 speaks **FreeD**, **OSC** or **OpenTrackIO**.
@@ -70,13 +70,13 @@ Download the zip for your system from the
 - `sdimeta_probe`, a command-line diagnostic tool;
 - `sample-captures/`, recordings from real cameras that you can replay without hardware.
 
-**macOS:** unzip and move **SDI Metadata Viewer.app** to Applications. The app is not notarised by Apple, so open it
+**macOS:** unzip and move **Metadork.app** to Applications. The app is not notarised by Apple, so open it
 the first time with right-click → **Open** → **Open**.
 
 The first time it sends data, macOS asks for **Local Network** access. Allow it, or nothing reaches the network. You
 can change this later in System Settings → Privacy & Security → Local Network.
 
-**Windows:** unzip anywhere and run **SdiMetaViewer.exe**. If SmartScreen warns about an unrecognised app, choose
+**Windows:** unzip anywhere and run **Metadork.exe**. If SmartScreen warns about an unrecognised app, choose
 **More info** → **Run anyway**. Allow it through the Windows firewall if asked.
 
 ## Try it without a camera
@@ -354,7 +354,7 @@ A `--raw` capture is the most useful thing to attach to a bug report or a reques
 
 Settings (feeds, devices, outputs, OSC variable choices, log options, panel width) are saved automatically:
 
-- **macOS**: `~/Library/Application Support/SdiMetaViewer/settings.ini`
-- **Windows**: `%APPDATA%\SdiMetaViewer\settings.ini`
+- **macOS**: `~/Library/Application Support/Metadork/settings.ini`
+- **Windows**: `%APPDATA%\Metadork\settings.ini`
 
 Delete the file to return to the defaults.

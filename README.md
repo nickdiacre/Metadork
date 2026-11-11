@@ -1,4 +1,6 @@
-# SDI Metadata Viewer
+# Metadork
+
+*SDI camera metadata to FreeD, OSC and OpenTrackIO (formerly SDI Metadata Viewer).*
 
 Reads per-frame camera metadata from an SDI feed on a Blackmagic DeckLink / UltraStudio device and sends it to
 Stage Precision, Unreal Engine or anything else that speaks **FreeD**, **OSC** or **OpenTrackIO**. The aim is to get
@@ -109,7 +111,7 @@ cmake -S . -B build -DSDIMETA_BUILD_APP=OFF
 cmake --build build && ctest --test-dir build
 ```
 
-- **macOS:** Xcode command line tools. Output: `build/SDI Metadata Viewer.app`, `build/sdimeta_probe`.
+- **macOS:** Xcode command line tools. Output: `build/Metadork.app`, `build/sdimeta_probe`.
 - **Windows:** Visual Studio 2022 with *Desktop development with C++*; run CMake from the *x64 Native Tools Command
   Prompt* so `midl.exe` (which generates the DeckLink COM headers) is on the PATH. Output: `build\Release\`.
   Built and tested in CI; not yet run against a DeckLink device on Windows, so please report problems.

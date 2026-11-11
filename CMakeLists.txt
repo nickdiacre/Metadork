@@ -114,13 +114,14 @@ if(APPLE)
     # A double-clickable .app; Info.plist carries the Local Network usage text macOS shows before the first send.
     add_executable(SdiMetaViewer MACOSX_BUNDLE ${APP_SOURCES})
     set_target_properties(SdiMetaViewer PROPERTIES
-        OUTPUT_NAME "SDI Metadata Viewer"
+        OUTPUT_NAME "Metadork"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/packaging/macos/Info.plist.in"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.nickdiacre.sdimetaviewer"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.nickdiacre.sdimetaviewer"  # kept from the old name: macOS permissions follow it
         MACOSX_BUNDLE_BUNDLE_VERSION "${SDIMETA_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${SDIMETA_VERSION}")
 else()
     add_executable(SdiMetaViewer ${APP_SOURCES})
+    set_target_properties(SdiMetaViewer PROPERTIES OUTPUT_NAME "Metadork")
 endif()
 target_include_directories(SdiMetaViewer PRIVATE ${DL_INCLUDE} src)
 target_compile_definitions(SdiMetaViewer PRIVATE SDIMETA_VERSION="${SDIMETA_VERSION}")

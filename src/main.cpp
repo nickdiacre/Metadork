@@ -1,4 +1,4 @@
-// SDI Metadata Viewer
+// Metadork (formerly SDI Metadata Viewer)
 // Preview an SDI input on a Blackmagic DeckLink and show / log every ancillary
 // packet, with decoders for ARRI extended metadata (FIZ, reel, clip, ...),
 // the ARRI record flag, RP 188 timecode, Sony RDD 18 acquisition metadata and Blackmagic camera control.
@@ -1122,7 +1122,7 @@ int main(int argc, char** argv) {
     // Screenshot mode uses a narrow window: replayed captures have no video, so the preview is kept small.
     bool shotMode = false;
     for (int i = 1; i < argc; ++i) shotMode |= std::strcmp(argv[i], "--screenshots") == 0;
-    GLFWwindow* window = glfwCreateWindow(shotMode ? 1000 : 1600, shotMode ? 1000 : 900, "SDI Metadata Viewer " SDIMETA_VERSION, nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(shotMode ? 1000 : 1600, shotMode ? 1000 : 900, "Metadork " SDIMETA_VERSION, nullptr, nullptr);
     if (!window) { glfwTerminate(); return 1; }
     glfwMakeContextCurrent(window);
     glfwSetDropCallback(window, onDrop);
@@ -1149,7 +1149,7 @@ int main(int argc, char** argv) {
         o.freedEnabled = o.oscEnabled = o.otioEnabled = true;
         o.otioMulticast = false;
     } else {
-        loadSettings(settingsPath, app);
+        if (!loadSettings(settingsPath, app)) loadSettings(legacySettingsPath(), app);  // first run after the rename
     }
     auto indexByName = [&](const std::string& name, int fallback) {
         for (size_t i = 0; i < devices->size(); ++i)

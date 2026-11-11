@@ -30,16 +30,26 @@ std::string d(double v) {
 std::string defaultSettingsPath() {
 #ifdef _WIN32
     const char* base = std::getenv("APPDATA");
-    fs::path dir = base ? fs::path(base) / "SdiMetaViewer" : fs::path("SdiMetaViewer");
+    fs::path dir = base ? fs::path(base) / "Metadork" : fs::path("Metadork");
 #elif defined(__APPLE__)
     const char* home = std::getenv("HOME");
-    fs::path dir = fs::path(home ? home : ".") / "Library" / "Application Support" / "SdiMetaViewer";
+    fs::path dir = fs::path(home ? home : ".") / "Library" / "Application Support" / "Metadork";
 #else
     const char* xdg = std::getenv("XDG_CONFIG_HOME");
     const char* home = std::getenv("HOME");
-    fs::path dir = xdg ? fs::path(xdg) / "sdimeta" : fs::path(home ? home : ".") / ".config" / "sdimeta";
+    fs::path dir = xdg ? fs::path(xdg) / "metadork" : fs::path(home ? home : ".") / ".config" / "metadork";
 #endif
     return (dir / "settings.ini").string();
+}
+
+std::string legacySettingsPath() {
+    // Before the rename to Metadork the folder was SdiMetaViewer (macOS / Windows) or sdimeta (Linux).
+    const fs::path p = fs::path(defaultSettingsPath()).parent_path();
+#if defined(_WIN32) || defined(__APPLE__)
+    return (p.parent_path() / "SdiMetaViewer" / "settings.ini").string();
+#else
+    return (p.parent_path() / "sdimeta" / "settings.ini").string();
+#endif
 }
 
 std::string resolveUserPath(const std::string& path) {
@@ -205,7 +215,7 @@ void readFeed(const std::map<std::string, std::string>& kv, const std::string& k
 
 std::string settingsToString(const AppSettings& s) {
     std::ostringstream w;
-    w << "# SDI Metadata Viewer settings\n"
+    w << "# Metadork settings\n"
       << "panel_width=" << d(s.panelWidth) << "\n"
       << "show_video=" << b(s.showVideo) << "\n"
       << "feed_layout=" << (s.gridView ? "grid" : "column") << "\n"

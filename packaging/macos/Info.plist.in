@@ -6,8 +6,8 @@
     <key>CFBundleExecutable</key>            <string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
     <key>CFBundleIdentifier</key>            <string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
     <key>CFBundleInfoDictionaryVersion</key> <string>6.0</string>
-    <key>CFBundleName</key>                  <string>SDI Metadata Viewer</string>
-    <key>CFBundleDisplayName</key>           <string>SDI Metadata Viewer</string>
+    <key>CFBundleName</key>                  <string>Metadork</string>
+    <key>CFBundleDisplayName</key>           <string>Metadork</string>
     <key>CFBundlePackageType</key>           <string>APPL</string>
     <key>CFBundleShortVersionString</key>    <string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>
     <key>CFBundleVersion</key>               <string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
@@ -15,6 +15,6 @@
     <key>NSHighResolutionCapable</key>       <true/>
     <key>LSApplicationCategoryType</key>     <string>public.app-category.video</string>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>SDI Metadata Viewer sends camera metadata (FreeD, OSC, OpenTrackIO) to receivers on your network, such as Stage Precision or Unreal Engine.</string>
+    <string>Metadork sends camera metadata (FreeD, OSC, OpenTrackIO) to receivers on your network, such as Stage Precision or Unreal Engine.</string>
 </dict>
 </plist>

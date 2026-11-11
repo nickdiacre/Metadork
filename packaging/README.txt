@@ -1,4 +1,4 @@
-SDI Metadata Viewer
+Metadork
 ===================
 
 Reads camera metadata (lens focus / iris / zoom, timecode, record state, clip names, tilt / roll ...) from an SDI feed
@@ -13,7 +13,7 @@ Before you start
 
 No camera? Drop one of the files in sample-captures/ onto the app window to replay a real recording.
 
-macOS: the app is not notarised. The first time, right-click "SDI Metadata Viewer.app" > Open > Open.
+macOS: the app is not notarised. The first time, right-click "Metadork.app" > Open > Open.
 Windows: SmartScreen may warn about an unrecognised app: More info > Run anyway.
 
 sdimeta_probe is a command-line diagnostic: it lists devices and prints which metadata packets reach the computer

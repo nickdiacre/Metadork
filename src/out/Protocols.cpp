@@ -246,7 +246,7 @@ std::string buildOpenTrackIOJson(const CameraSample& s, const OpenTrackIOConfig&
         JObj st;
         if (!cam.empty()) st.raw("camera", cam.done());
         if (!lensStatic.empty()) st.raw("lens", lensStatic.done());
-        st.raw("tracker", "{\"make\":\"SDI Metadata Viewer\",\"model\":\"sdimeta\",\"firmwareVersion\":\"1.0\"}");
+        st.raw("tracker", "{\"make\":\"Metadork\",\"model\":\"sdimeta\",\"firmwareVersion\":\"1.0\"}");
         root.raw("static", st.done());
     }
     return root.done();
