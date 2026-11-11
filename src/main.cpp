@@ -117,8 +117,14 @@ bool orientationSigns(const char* id, OrientationSigns& sg) {
     return changed;
 }
 
+// Label / value tables share one fixed label width, so sections line up with each other and a value changing length
+// (a clip name, a timecode) never resizes the columns.
 bool beginKV(const char* id) {
-    return ImGui::BeginTable(id, 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp);
+    if (!ImGui::BeginTable(id, 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) return false;
+    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed,
+                            ImGui::CalcTextSize("Focus position (0 near - 1 far)    ").x);
+    ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
+    return true;
 }
 
 std::string focusString(const ArriMetadata& a) {
@@ -449,7 +455,7 @@ void drawSummary(const FrameMetadata& md, bool hasFrame, const CameraSample& cs)
             if (open) ImGui::EndTable();
             group = int(v.group);
             ImGui::SeparatorText(fieldGroupName(v.group));
-            open = ImGui::BeginTable(fieldGroupName(v.group), 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp);
+            open = beginKV(fieldGroupName(v.group));
         }
         if (!open) continue;
         ImGui::TableNextRow();
