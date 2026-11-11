@@ -13,7 +13,7 @@ from the lens system.
 The app is free and open source. If it's useful to you, you can
 <a href="https://buymeacoffee.com/nickdiacre">buy me a coffee</a>:
 
-<a href="https://buymeacoffee.com/nickdiacre"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="28"></a>
+<a href="https://buymeacoffee.com/nickdiacre"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="36"></a>
 
 - [What you need](#what-you-need)
 - [Install](#install)
