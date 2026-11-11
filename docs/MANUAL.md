@@ -162,7 +162,8 @@ changes. This is the place to check that a value really moves when you change it
 
 ### Output
 
-Set up the outputs, then press **Apply**. Unapplied changes are flagged. The **FreeD**, **OSC**, **OpenTrackIO** and
+Changes take effect straight away: checkboxes and lists at once, typed fields (hosts, ports, scales) when you leave
+the field. The **FreeD**, **OSC**, **OpenTrackIO** and
 **Log file** sub-tabs are described under [Outputs](#outputs).
 
 #### Values the camera doesn't send
@@ -278,7 +279,7 @@ previous clip while stopped.
 
 ## Stage Precision
 
-1. In the app, enable **OSC** with Stage Precision's IP address and its OSC input port, and press **Apply**.
+1. In the app, enable **OSC** with Stage Precision's IP address and its OSC input port.
 2. In Stage Precision, add an OSC input on that port and map the addresses you need: `/camera/focus`, `/camera/iris`,
    `/camera/zoom`, `/camera/tilt`, `/camera/roll`, and `/camera/recording` + `/camera/recording_name` for take
    naming.
@@ -321,7 +322,7 @@ overriding the lens's own data (ARRI). Clear the lens table.
 
 **Nothing arrives at the receiver.**
 
-- Check the host, port and **Apply**. The output sub-tab shows "Sending to …" and any send errors.
+- Check the host and port. The output sub-tab shows "Sending to …" and any send errors.
 - On macOS, check Local Network permission (System Settings → Privacy & Security → Local Network).
 - On Windows, check the firewall.
 

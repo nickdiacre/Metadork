@@ -692,7 +692,7 @@ void drawRaw(const FrameMetadata& md, const std::map<uint16_t, PacketStats>& sta
 
 // ------------------------------------------------------------ Output tab
 
-// UI-side copy of the output settings; Apply pushes it to the OutputManager.
+// UI-side copy of the output settings; changes are pushed to the OutputManager automatically (see drawOutput).
 struct OutputsUi {
     OutputSettings pending;
     char freedHost[128] = "127.0.0.1";
@@ -832,7 +832,7 @@ void drawOpenTrackIO(OutputsUi& ui, const OutputManager::Status& st, const Outpu
     }
 }
 
-// Returns true when Apply was pressed (the caller saves settings).
+// Returns true when changed settings were applied (the caller saves settings).
 // Values the camera doesn't send over SDI and the user has to supply. Each item shows only when the current camera
 // needs it (or a manual value is in force).
 struct ManualInputs {
@@ -847,20 +847,8 @@ struct ManualInputs {
 
 bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* logPath, size_t logPathSize, bool& logRaw,
                 ManualInputs& manual) {
-    bool applied = false;
     const OutputManager::Status st = out.status();
     auto& p = ui.pending;
-    ImGui::BeginDisabled(!ui.dirty);
-    if (ImGui::Button("Apply")) {
-        p.freedHost = ui.freedHost;
-        p.oscHost = ui.oscHost;
-        p.otioHost = ui.otioHost;
-        out.apply(p);
-        ui.dirty = false;
-        applied = true;
-    }
-    ImGui::EndDisabled();
-    if (ui.dirty) { ImGui::SameLine(); ImGui::TextColored(kAmber, "Unapplied changes"); }
     if (st.sendErrors) {
         ImGui::TextColored(kRed, "%llu send errors, last: %s", (unsigned long long)st.sendErrors, st.lastSendError.c_str());
     }
@@ -892,9 +880,17 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
                 p.sensorOverride = SensorOverride(mode);
                 ui.dirty = true;
             }
-            if (ImGui::BeginCombo("Preset", "Choose a recording mode...")) {
+            std::string presetLabel = p.manualSensorWidthMm > 0 && p.manualSensorHeightMm > 0 ? "Custom size" : "Choose a recording mode...";
+            // Show the mode matching the current size (this camera's modes first, as several bodies share sizes)
+            const std::string body = sensorBody(manual.cameraModel);
+            auto matches = [&](const SensorMode& m) {
+                return std::fabs(m.widthMm() - p.manualSensorWidthMm) < 0.005 && std::fabs(m.heightMm() - p.manualSensorHeightMm) < 0.005;
+            };
+            for (int pass = 0; pass < 2 && presetLabel.rfind("Custom", 0) == 0; ++pass)
+                for (const auto& m : sensorModes())
+                    if ((body == m.camera) == (pass == 0) && matches(m)) { presetLabel = std::string(m.camera) + "  " + m.name; break; }
+            if (ImGui::BeginCombo("Preset", presetLabel.c_str())) {
                 // This camera's modes first, then every other body.
-                const std::string body = sensorBody(manual.cameraModel);
                 for (int pass = 0; pass < 2; ++pass) {
                     if (pass == 1 && !body.empty()) ImGui::SeparatorText("Other cameras");
                     for (const auto& m : sensorModes()) {
@@ -925,7 +921,17 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
         if (ImGui::BeginTabItem("Log file", nullptr, tabFlags("Log file", g_wantSubTab))) { drawLogging(logger, logPath, logPathSize, logRaw); ImGui::EndTabItem(); }
         ImGui::EndTabBar();
     }
-    return applied;
+    // Apply changes automatically once nothing is being edited: checkboxes and lists at once, typed fields (hosts,
+    // ports, scales) when the field is left, so a half-typed address or port is never used.
+    if (ui.dirty && !ImGui::IsAnyItemActive()) {
+        p.freedHost = ui.freedHost;
+        p.oscHost = ui.oscHost;
+        p.otioHost = ui.otioHost;
+        out.apply(p);
+        ui.dirty = false;
+        return true;
+    }
+    return false;
 }
 
 #ifdef __APPLE__

@@ -58,7 +58,7 @@ and Blackmagic URSA.
     because zero pan/position would override a real tracker; focal length goes out as pinholeFocalLength (nominal).
   - `Settings`: all UI settings (outputs incl. OSC variable choices, log, device, panel width) as key=value in
     ~/Library/Application Support/SdiMetaViewer/settings.ini (macOS) / %APPDATA%\SdiMetaViewer (Windows) /
-    ~/.config/sdimeta (Linux). Saved on Apply, port change, splitter release and exit (incl. Ctrl-C); restored and
+    ~/.config/sdimeta (Linux). Saved on any output change, port change, splitter release and exit (incl. Ctrl-C); restored and
     applied at launch, so enabled outputs start sending immediately.
   - `UdpSender` (POSIX + Winsock), `OutputManager` (sends on every captured frame; needs the video rate for timing).
   - macOS asks for Local Network permission the first time the app sends; sends fail silently until granted.
@@ -85,7 +85,7 @@ and Blackmagic URSA.
   port captures from it (None stops); a per-frame reconcile opens each feed's port at launch / after changes and retries
   failures every 3 s; a running replay pauses the feed's live input.
 - `src/main.cpp`: GLFW + Dear ImGui UI. Right panel tabs: Summary (catalogue), Input (decoded fields of the detected camera,
-  TC/record state), Output ("Values the camera doesn't send" section shown only when needed: RED position letter, sensor size; then FreeD | OSC | OpenTrackIO | Log file sub-tabs, one Apply), Raw (ANC packets, hex, RDD 18
+  TC/record state), Output ("Values the camera doesn't send" section shown only when needed: RED position letter, sensor size; then FreeD | OSC | OpenTrackIO | Log file sub-tabs; changes apply automatically once no widget is active, so typed fields apply on leaving them), Raw (ANC packets, hex, RDD 18
   stream). Preview: 10-bit YUV (v210) frames are uploaded as an RGB10_A2 texture and unpacked +
   colour-converted (601/709/2020 -> 709) in a GLSL 150 shader into an FBO texture, every frame (GL 2+ entry points loaded
   with glfwGetProcAddress). Other formats fall back to IDeckLinkVideoConversion at ~10 fps (CPU; ~40 ms per UHD frame). The SDK 12 GL preview helper was avoided because it is fixed-function and
