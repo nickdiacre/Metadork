@@ -12,7 +12,7 @@ No camera to hand? The release includes sample captures from real cameras you ca
 
 If it's useful to you, you can support its development:
 
-<a href="https://buymeacoffee.com/nickdiacre"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="45"></a>
+<a href="https://buymeacoffee.com/nickdiacre"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="28"></a>
 
 ![Summary tab](docs/images/venice2-summary.png)
 

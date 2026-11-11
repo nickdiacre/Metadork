@@ -95,4 +95,4 @@ jobs:
             Requires Blackmagic Desktop Video. See the [manual](https://github.com/nickdiacre/sdi-metadata-viewer/blob/main/docs/MANUAL.md).
             macOS: not notarised; right-click the app > Open the first time. Windows: SmartScreen > More info > Run anyway.
 
-            If it's useful to you: [![Buy me a coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/nickdiacre)
+            If it's useful to you: <a href="https://buymeacoffee.com/nickdiacre"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="28"></a>
