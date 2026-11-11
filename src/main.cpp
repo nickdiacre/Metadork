@@ -1268,7 +1268,7 @@ int main(int argc, char** argv) {
         // Feeds, stacked vertically; click one to show it in the right-hand panel
         ImGui::SetNextWindowPos(vp->WorkPos);
         ImGui::SetNextWindowSize(ImVec2(vp->WorkSize.x - panelW, vp->WorkSize.y));
-        ImGui::Begin("Feeds", nullptr, fixed | ImGuiWindowFlags_NoScrollbar);
+        ImGui::Begin("Feeds", nullptr, fixed);  // scrolls when the tiles don't fit
         if (ImGui::Checkbox("Show video", &showVideo)) save();
         ImGui::SameLine();
         if (ImGui::Button("+ Add feed")) {
@@ -1290,9 +1290,9 @@ int main(int argc, char** argv) {
             ImGui::SetTooltip("Adds another input. It copies this feed's output settings with a new name (OSC prefix),\n"
                               "the next free FreeD camera ID and OpenTrackIO source number, and its own log file.");
         {
-            const ImVec2 area = ImGui::GetContentRegionAvail();
-            const float gap = ImGui::GetStyle().ItemSpacing.y;
-            const float tileH = std::max(60.0f, (area.y - gap * float(feeds.size() - 1)) / float(feeds.size()));
+            // Tiles stacked at full width: a header line plus a 16:9 picture area
+            const ImGuiStyle& style = ImGui::GetStyle();
+            const float headerH = ImGui::GetTextLineHeightWithSpacing();
             for (size_t i = 0; i < feeds.size(); ++i) {
                 Feed& f = *feeds[i];
                 const bool isSel = i == sel && feeds.size() > 1;
@@ -1301,7 +1301,9 @@ int main(int argc, char** argv) {
                     ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
                     ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 2.0f);
                 }
-                ImGui::BeginChild("tile", ImVec2(area.x, tileH), ImGuiChildFlags_Borders,
+                const float tileW = ImGui::GetContentRegionAvail().x;
+                const float tileH = style.WindowPadding.y * 2 + headerH + (tileW - style.WindowPadding.x * 2) * 9.0f / 16.0f;
+                ImGui::BeginChild("tile", ImVec2(tileW, tileH), ImGuiChildFlags_Borders,
                                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
                 const InputStatus fst = f.session ? f.session->status() : InputStatus{};
                 RecState rec;
