@@ -700,6 +700,7 @@ int main() {
         a.feeds[0].deviceName = "UltraStudio Express Recorder 3G";
         a.panelWidth = 742.5f;
         a.showVideo = false;
+        a.gridView = true;
         a.feeds[0].recFromTc = false;
         a.feeds[0].logPath = "/tmp/some log.jsonl";
         a.feeds[0].outputs.freedEnabled = true;
@@ -722,7 +723,7 @@ int main() {
         AppSettings b;
         settingsFromString(settingsToString(a), b);
         CHECK(settingsToString(a) == settingsToString(b));
-        CHECK(b.feeds[0].deviceName == a.feeds[0].deviceName && b.panelWidth == 742.5f && !b.showVideo && !b.feeds[0].recFromTc && b.feeds[0].logPath == a.feeds[0].logPath);
+        CHECK(b.feeds[0].deviceName == a.feeds[0].deviceName && b.panelWidth == 742.5f && !b.showVideo && b.gridView && !b.feeds[0].recFromTc && b.feeds[0].logPath == a.feeds[0].logPath);
         CHECK(b.feeds[0].outputs.freedHost == "192.168.10.2" && b.feeds[0].outputs.freedPort == 40001 && b.feeds[0].outputs.freed.cameraId == 3);
         CHECK(b.feeds[0].outputs.osc.prefix == "/cam/a" && b.feeds[0].outputs.osc.focusUnit == FocusUnit::Feet && b.feeds[0].outputs.osc.disabled.size() == 2);
         CHECK(!b.feeds[0].outputs.otioMulticast && b.feeds[0].outputs.otioHost == "10.0.0.9" && b.feeds[0].outputs.otio.sourceNumber == 42);

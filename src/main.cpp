@@ -1198,6 +1198,9 @@ int main(int argc, char** argv) {
     size_t shotIndex = 0;
     double shotAt = 0;
     float panelW = app.panelWidth;
+    bool gridView = app.gridView;  // feeds 2 across (quad / side by side) instead of one column
+    bool fitFeeds = true;
+    int solo = -1;                 // feed shown alone (double-click a tile), -1 = all          // size the feeds panel to fit 4 feeds (at launch and when the layout changes)
     bool showVideo = app.showVideo;
 
     if (screenshots) panelW = 760.0f;
@@ -1207,6 +1210,7 @@ int main(int argc, char** argv) {
         for (const auto& f : feeds) app.feeds.push_back(f->settings(deviceName(*f)));
         app.panelWidth = panelW;
         app.showVideo = showVideo;
+        app.gridView = gridView;
         saveSettings(settingsPath, app);
     };
 
@@ -1298,6 +1302,19 @@ int main(int argc, char** argv) {
         CaptureReplay& replay = *F.replay;
 
         const ImGuiViewport* vp = ImGui::GetMainViewport();
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const float headerH = ImGui::GetTextLineHeightWithSpacing();  // feed tile header line
+        if (fitFeeds && !screenshots) {
+            // Feeds panel width at which 4 feeds fill its height without scrolling: 4 rows in a column, 2 x 2 in grid.
+            const int cols = gridView ? 2 : 1, rows = 4 / cols;
+            const float h = vp->WorkSize.y - style.WindowPadding.y * 2 - ImGui::GetFrameHeightWithSpacing();
+            const float tileH = (h - style.ItemSpacing.y * float(rows - 1)) / float(rows);
+            const float picH = std::floor(tileH - style.WindowPadding.y * 2 - headerH) - 1.0f;
+            const float tileW = picH * 16.0f / 9.0f + style.WindowPadding.x * 2;
+            const float leftW = tileW * float(cols) + style.ItemSpacing.x * float(cols - 1) + style.WindowPadding.x * 2 + 2.0f;
+            panelW = vp->WorkSize.x - leftW;
+            fitFeeds = false;
+        }
         panelW = std::clamp(panelW, 320.0f, std::max(320.0f, vp->WorkSize.x - 240.0f));
         // NoBringToFrontOnFocus keeps the splitter (drawn last) on top of both panels.
         const ImGuiWindowFlags fixed = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
@@ -1320,11 +1337,27 @@ int main(int argc, char** argv) {
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Adds another input. It copies this feed's output settings with a new name (OSC prefix),\n"
                               "the next free FreeD camera ID and OpenTrackIO source number, and its own log file.");
+        ImGui::SameLine();
+        if (solo >= int(feeds.size())) solo = -1;
+        if (solo >= 0) {
+            if (ImGui::Button("Show all feeds")) solo = -1;
+            ImGui::SameLine();
+            ImGui::TextDisabled("(or double-click the feed)");
+        } else if (ImGui::Button(gridView ? "Column view" : "Grid view")) {
+            gridView = !gridView;
+            fitFeeds = true;  // resize the panel to suit the new layout from the next frame
+            save();
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(gridView ? "Stack the feeds in one column" : "Show the feeds two across (side by side / quad view)");
         {
-            // Tiles stacked at full width: a header line plus a 16:9 picture area
-            const ImGuiStyle& style = ImGui::GetStyle();
-            const float headerH = ImGui::GetTextLineHeightWithSpacing();
-            for (size_t i = 0; i < feeds.size(); ++i) {
+            // Tiles: a header line plus a 16:9 picture area, in one column or two across
+            const int cols = gridView && solo < 0 ? 2 : 1;
+            const ImVec2 area = ImGui::GetContentRegionAvail();
+            const float tileW = (area.x - style.ItemSpacing.x * float(cols - 1)) / float(cols);
+            for (size_t i = 0, shown = 0; i < feeds.size(); ++i) {
+                if (solo >= 0 && int(i) != solo) continue;  // soloed: only that feed, filling the panel
+                if (shown++ % size_t(cols)) ImGui::SameLine();
                 Feed& f = *feeds[i];
                 const bool isSel = i == sel && feeds.size() > 1;
                 ImGui::PushID(int(i));
@@ -1332,8 +1365,8 @@ int main(int argc, char** argv) {
                     ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
                     ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 2.0f);
                 }
-                const float tileW = ImGui::GetContentRegionAvail().x;
-                const float tileH = style.WindowPadding.y * 2 + headerH + (tileW - style.WindowPadding.x * 2) * 9.0f / 16.0f;
+                const float tileH = solo >= 0 ? area.y
+                                              : style.WindowPadding.y * 2 + headerH + (tileW - style.WindowPadding.x * 2) * 9.0f / 16.0f;
                 ImGui::BeginChild("tile", ImVec2(tileW, tileH), ImGuiChildFlags_Borders,
                                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
                 const InputStatus fst = f.session ? f.session->status() : InputStatus{};
@@ -1382,8 +1415,10 @@ int main(int argc, char** argv) {
                 } else if (f.session && showVideo) {
                     ImGui::TextDisabled(f.preview.conv ? "No video" : "Video converter unavailable (DeckLink driver missing?)");
                 }
-                if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                    sel = i;
+                if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) sel = i;
+                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) solo = solo >= 0 ? -1 : int(i);  // solo / unsolo
+                }
                 ImGui::EndChild();
                 if (isSel) { ImGui::PopStyleVar(); ImGui::PopStyleColor(); }
                 ImGui::PopID();

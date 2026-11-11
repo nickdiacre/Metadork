@@ -24,6 +24,7 @@ struct AppSettings {
     std::vector<FeedSettings> feeds{1};  // always at least one
     float panelWidth = 560.0f;
     bool showVideo = true;
+    bool gridView = false;  // feeds two across instead of one column
 };
 
 // A new feed's settings: copies `from` (hosts, ports, options) with a unique name, FreeD camera ID, OpenTrackIO source

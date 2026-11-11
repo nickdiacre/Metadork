@@ -123,6 +123,10 @@ cameras that send no record flag. It only does this after it has seen the timeco
 
 Each input is a **feed**. The feeds are stacked down the left-hand side, each with its name, input, timecode, a red
 **REC** while recording, and its picture. Click a feed to show its data and settings in the right-hand panel.
+**Grid view** / **Column view** switches between one column and two across (side by side, or a quad split with four
+feeds); the panel resizes so four feeds fit without scrolling, and the app opens that way. **Double-click** a feed to
+show it alone, filling the panel; double-click again (or **Show all feeds**) to go back. The divider between the panels
+can still be dragged.
 
 - **+ Add feed** adds another input. It copies the selected feed's output settings (hosts, ports, options) and gives
   the new feed a unique name (`camera2`, `camera3` ...), the next free **FreeD camera ID**, the next free

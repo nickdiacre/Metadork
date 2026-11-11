@@ -84,6 +84,7 @@ and Blackmagic URSA.
   camera ID, OpenTrackIO source number and log file. A port can be captured by only one feed. No Start/Stop: choosing a
   port captures from it (None stops); a per-frame reconcile opens each feed's port at launch / after changes and retries
   failures every 3 s; a running replay pauses the feed's live input.
+  Feeds panel: column or grid (2 across, `feed_layout`), sized at launch / on toggle so 4 feeds fit; double-click solos a feed.
 - `src/main.cpp`: GLFW + Dear ImGui UI. Right panel tabs: Summary (catalogue), Input (decoded fields of the detected camera,
   TC/record state), Output ("Values the camera doesn't send" section shown only when needed: RED position letter, sensor size; then FreeD | OSC | OpenTrackIO | Log file sub-tabs; changes apply automatically once no widget is active, so typed fields apply on leaving them), Raw (ANC packets, hex, RDD 18
   stream). Preview: 10-bit YUV (v210) frames are uploaded as an RGB10_A2 texture and unpacked +

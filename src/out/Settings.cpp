@@ -208,6 +208,7 @@ std::string settingsToString(const AppSettings& s) {
     w << "# SDI Metadata Viewer settings\n"
       << "panel_width=" << d(s.panelWidth) << "\n"
       << "show_video=" << b(s.showVideo) << "\n"
+      << "feed_layout=" << (s.gridView ? "grid" : "column") << "\n"
       << "roll_convention=2\n"
       << "feed_count=" << s.feeds.size() << "\n";
     for (size_t i = 0; i < s.feeds.size(); ++i) {
@@ -229,6 +230,7 @@ void settingsFromString(const std::string& text, AppSettings& s) {
     }
     if (auto it = kv.find("panel_width"); it != kv.end()) try { s.panelWidth = std::stof(it->second); } catch (...) {}
     if (auto it = kv.find("show_video"); it != kv.end()) s.showVideo = it->second == "1";
+    if (auto it = kv.find("feed_layout"); it != kv.end()) s.gridView = it->second == "grid";
     int count = 1;
     if (auto it = kv.find("feed_count"); it != kv.end()) try { count = std::clamp(std::stoi(it->second), 1, 16); } catch (...) {}
     if (s.feeds.empty()) s.feeds.resize(1);
