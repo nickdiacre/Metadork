@@ -91,6 +91,9 @@ and Blackmagic URSA.
   colour-converted (601/709/2020 -> 709) in a GLSL 150 shader into an FBO texture, every frame (GL 2+ entry points loaded
   with glfwGetProcAddress). Other formats fall back to IDeckLinkVideoConversion at ~10 fps (CPU; ~40 ms per UHD frame). The SDK 12 GL preview helper was avoided because it is fixed-function and
   incompatible with the GL 3.2 core context macOS requires.
+  DPI: on Windows / Linux the font (ProggyClean at 13 px x content scale) and style are scaled by the monitor content
+  scale (`applyUiScale`, rebuilt when the window changes monitor); fixed pixel sizes go through `px()`. macOS stays at 1
+  (points; Retina via the framebuffer scale).
 
 ## Key spec facts (ARRI SDI Metadata white paper, July 2023)
 https://www.arri.com/resource/blob/327826/a17ae3b8bf7e8d487d6d01648bdf432e/arri-cameras-sdi-metadata-white-paper-data.pdf

@@ -395,6 +395,11 @@ ImGuiTabItemFlags tabFlags(const char* name, const char* want) {
 }
 
 
+// UI scale (see applyUiScale): fixed pixel sizes go through px().
+float g_uiScale = 1.0f;
+bool g_rescaleUi = true;
+float px(float v) { return v * g_uiScale; }
+
 // Hex dump in a bordered child, with as many bytes per line as fit the width (multiple of 4), so it never scrolls
 // sideways. A line is "0000: " + 3 chars per byte + 2 + 1 char per byte.
 void drawHex(const char* id, const uint8_t* data, size_t len, float height) {
@@ -516,7 +521,7 @@ void drawArri(const FrameMetadata& md) {
 void drawAnc(const FrameMetadata& md, const std::map<uint16_t, PacketStats>& stats, int& selected) {
     ImGui::Text("%zu packets in latest frame, %zu packet types seen", md.packets.size(), stats.size());
     if (ImGui::BeginTable("anc", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY,
-                          ImVec2(0, 240))) {
+                          ImVec2(0, px(240)))) {
         ImGui::TableSetupScrollFreeze(0, 1);
         // Fixed widths (fitted to the header / typical value) so wrapped text never squeezes the description.
         auto fixed = [](const char* name, const char* sample) {
@@ -686,7 +691,7 @@ void drawInput(const FrameMetadata& md, bool hasFrame, const CameraSample& cs, c
 void drawRaw(const FrameMetadata& md, const std::map<uint16_t, PacketStats>& stats, int& selected) {
     drawAnc(md, stats, selected);
     if (md.rdd18.packets && ImGui::CollapsingHeader("Sony RDD 18 reassembled stream")) {
-        drawHex("rddhex", md.rdd18.stream.data(), md.rdd18.stream.size(), 300);
+        drawHex("rddhex", md.rdd18.stream.data(), md.rdd18.stream.size(), px(300));
     }
 }
 
@@ -826,7 +831,7 @@ void drawOpenTrackIO(OutputsUi& ui, const OutputManager::Status& st, const Outpu
     ImGui::TextDisabled("Sends: lens focusDistance, fStop/tStop, pinholeFocalLength; timing incl. timecode; tracker "
                         "recording + slate (clip); static camera make/model/serial, sensor size, frame rate, ISO, shutter.");
     if (!st.otioLastJson.empty() && ImGui::CollapsingHeader("Last sample (JSON)")) {
-        ImGui::BeginChild("otiojson", ImVec2(0, 220), ImGuiChildFlags_Borders);
+        ImGui::BeginChild("otiojson", ImVec2(0, px(220)), ImGuiChildFlags_Borders);
         ImGui::TextWrapped("%s", st.otioLastJson.c_str());
         ImGui::EndChild();
     }
@@ -1098,6 +1103,36 @@ struct Feed {
     }
 };
 
+// UI scale for the display's DPI. macOS already works in points (Retina handled by the framebuffer scale), so 1 there;
+// Windows / Linux report physical pixels, so the font and style are scaled by the monitor's content scale (150% = 1.5).
+
+void onContentScale(GLFWwindow*, float, float) { g_rescaleUi = true; }
+
+void applyUiScale(GLFWwindow* window, bool rebuildTexture) {
+    float scale = 1.0f;
+#ifndef __APPLE__
+    float sy = 1.0f;
+    glfwGetWindowContentScale(window, &scale, &sy);
+    if (scale <= 0.0f) scale = 1.0f;
+#else
+    (void)window;
+#endif
+    g_uiScale = scale;
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->Clear();
+    ImFontConfig cfg;
+    cfg.SizePixels = std::round(13.0f * scale);
+    io.Fonts->AddFontDefault(&cfg);
+    ImGuiStyle& style = ImGui::GetStyle();
+    style = ImGuiStyle();
+    ImGui::StyleColorsDark();
+    style.ScaleAllSizes(scale);
+    if (rebuildTexture) {
+        ImGui_ImplOpenGL3_DestroyFontsTexture();
+        ImGui_ImplOpenGL3_CreateFontsTexture();
+    }
+}
+
 // Characters allowed in a feed name (it becomes an OSC address part): letters, digits, _ - . and / for sub-levels.
 int feedNameFilter(ImGuiInputTextCallbackData* d) {
     const ImWchar c = d->EventChar;
@@ -1119,21 +1154,39 @@ int main(int argc, char** argv) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);  // Windows / Linux: window size follows the display scale
     // Screenshot mode uses a narrow window: replayed captures have no video, so the preview is kept small.
     bool shotMode = false;
     for (int i = 1; i < argc; ++i) shotMode |= std::strcmp(argv[i], "--screenshots") == 0;
     GLFWwindow* window = glfwCreateWindow(shotMode ? 1000 : 1600, shotMode ? 1000 : 900, "Metadork " SDIMETA_VERSION, nullptr, nullptr);
     if (!window) { glfwTerminate(); return 1; }
+#ifndef __APPLE__
+    // Scaled to the monitor (e.g. 2400 x 1350 at 150%), the default size can exceed a laptop screen: fit the work area.
+    if (GLFWmonitor* mon = glfwGetPrimaryMonitor()) {
+        int mx, my, mw, mh, ww, wh;
+        glfwGetMonitorWorkarea(mon, &mx, &my, &mw, &mh);
+        glfwGetWindowSize(window, &ww, &wh);
+        if (mw > 0 && mh > 0 && (ww > mw * 9 / 10 || wh > mh * 9 / 10)) {
+            const double k = std::min(mw * 0.9 / ww, mh * 0.9 / wh);
+            ww = int(ww * k);
+            wh = int(wh * k);
+            glfwSetWindowSize(window, ww, wh);
+            glfwSetWindowPos(window, mx + (mw - ww) / 2, my + (mh - wh) / 2);
+        }
+    }
+#endif
     glfwMakeContextCurrent(window);
     glfwSetDropCallback(window, onDrop);
+    glfwSetWindowContentScaleCallback(window, onContentScale);
     glfwSwapInterval(1);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::GetIO().IniFilename = nullptr;
-    ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 150");
+    applyUiScale(window, false);
+    g_rescaleUi = false;
 
     auto devices = std::make_unique<DeckLinkDevices>();
     std::vector<std::unique_ptr<Feed>> feeds;
@@ -1203,7 +1256,7 @@ int main(int argc, char** argv) {
     int solo = -1;                 // feed shown alone (double-click a tile), -1 = all          // size the feeds panel to fit 4 feeds (at launch and when the layout changes)
     bool showVideo = app.showVideo;
 
-    if (screenshots) panelW = 760.0f;
+    if (screenshots) panelW = px(760);
     auto save = [&] {
         if (screenshots) return;  // don't overwrite the user's settings
         app.feeds.clear();
@@ -1279,6 +1332,10 @@ int main(int argc, char** argv) {
             }
         }
 
+        if (g_rescaleUi) {  // window moved to a monitor with a different scale
+            g_rescaleUi = false;
+            applyUiScale(window, true);
+        }
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -1315,7 +1372,7 @@ int main(int argc, char** argv) {
             panelW = vp->WorkSize.x - leftW;
             fitFeeds = false;
         }
-        panelW = std::clamp(panelW, 320.0f, std::max(320.0f, vp->WorkSize.x - 240.0f));
+        panelW = std::clamp(panelW, px(320), std::max(px(320), vp->WorkSize.x - px(240)));
         // NoBringToFrontOnFocus keeps the splitter (drawn last) on top of both panels.
         const ImGuiWindowFlags fixed = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                                        ImGuiWindowFlags_NoBringToFrontOnFocus;
@@ -1666,7 +1723,7 @@ int main(int argc, char** argv) {
         ImGui::End();
 
         // Drag handle on the panel's left edge
-        const float grip = 8.0f;
+        const float grip = px(8);
         ImGui::SetNextWindowPos(ImVec2(vp->WorkPos.x + vp->WorkSize.x - panelW - grip * 0.5f, vp->WorkPos.y));
         ImGui::SetNextWindowSize(ImVec2(grip, vp->WorkSize.y));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
