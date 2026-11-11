@@ -31,6 +31,7 @@
 #endif
 #include <atomic>
 #include <csignal>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -690,7 +691,6 @@ struct OutputsUi {
     OutputSettings pending;
     char freedHost[128] = "127.0.0.1";
     char oscHost[128] = "127.0.0.1";
-    char oscPrefix[64] = "/camera";
     char otioHost[128] = "127.0.0.1";
     bool dirty = false;
 };
@@ -733,7 +733,9 @@ void drawOsc(OutputsUi& ui, const OutputManager::Status& st, const OutputManager
     ui.dirty |= ImGui::Checkbox("Enable OSC", &p.oscEnabled);
     ui.dirty |= ImGui::InputText("Host##osc", ui.oscHost, sizeof ui.oscHost);
     ui.dirty |= ImGui::InputInt("Port##osc", &p.oscPort, 0);
-    ui.dirty |= ImGui::InputText("Address prefix", ui.oscPrefix, sizeof ui.oscPrefix);
+    ImGui::Text("Address prefix: %s", p.osc.prefix.c_str());
+    ImGui::SameLine();
+    ImGui::TextDisabled("(the feed name, set at the top of this panel)");
     int unit = int(p.osc.focusUnit);
     if (ImGui::Combo("Focus unit", &unit, "metres\0millimetres\0feet\0")) { p.osc.focusUnit = FocusUnit(unit); ui.dirty = true; }
     ui.dirty |= ImGui::InputDouble("Infinity sends (m)", &p.osc.infinityMetres, 0, 0, "%.1f");
@@ -760,7 +762,7 @@ void drawOsc(OutputsUi& ui, const OutputManager::Status& st, const OutputManager
         ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("string").x);
         ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 1.5f);
         ImGui::TableHeadersRow();
-        const std::string pre = ui.oscPrefix;
+        const std::string pre = p.osc.prefix;
         for (const auto& v : vars) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -846,7 +848,6 @@ bool drawOutput(OutputManager& out, OutputsUi& ui, JsonLogger& logger, char* log
     if (ImGui::Button("Apply")) {
         p.freedHost = ui.freedHost;
         p.oscHost = ui.oscHost;
-        p.osc.prefix = ui.oscPrefix;
         p.otioHost = ui.otioHost;
         out.apply(p);
         ui.dirty = false;
@@ -967,121 +968,49 @@ void onDrop(GLFWwindow*, int count, const char** paths) {
     g_dropped = paths[0];
 }
 
-}  // namespace
+// ------------------------------------------------------------ feeds
 
-int main(int argc, char** argv) {
-    dlp::initialise();
-#ifdef __APPLE__
-    preventAppNap();
-#endif
-    std::signal(SIGINT, onSignal);
-    std::signal(SIGTERM, onSignal);
-
-    if (!glfwInit()) return 1;
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    // Screenshot mode uses a narrow window: replayed captures have no video, so the preview is kept small.
-    bool shotMode = false;
-    for (int i = 1; i < argc; ++i) shotMode |= std::strcmp(argv[i], "--screenshots") == 0;
-    GLFWwindow* window = glfwCreateWindow(shotMode ? 1000 : 1600, shotMode ? 1000 : 900, "SDI Metadata Viewer " SDIMETA_VERSION, nullptr, nullptr);
-    if (!window) { glfwTerminate(); return 1; }
-    glfwMakeContextCurrent(window);
-    glfwSetDropCallback(window, onDrop);
-    glfwSwapInterval(1);
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGui::GetIO().IniFilename = nullptr;
-    ImGui::StyleColorsDark();
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 150");
-
-    auto devices = std::make_unique<DeckLinkDevices>();
+// One input: its own capture (or replay), decode state, outputs, log file and preview. Feeds never move once created
+// (held by unique_ptr): the capture and replay threads call handle() through a pointer.
+struct Feed {
     Shared shared;
     JsonLogger logger;
     OutputManager outputs;
     OutputsUi outputsUi;
     Preview preview;
-    preview.conv = dlp::createVideoConversion();
-    preview.initGpu();
-
-    // Restore the previous session's settings and start any outputs that were enabled.
-    const std::string settingsPath = defaultSettingsPath();
-    AppSettings app;
-    const bool screenshots = shotMode;
-    if (screenshots) {
-        // Defaults, sending to this machine only: keeps the user's hosts out of the images and off their network.
-        app.outputs.freedEnabled = app.outputs.oscEnabled = app.outputs.otioEnabled = true;
-        app.outputs.otioMulticast = false;
-    } else {
-        loadSettings(settingsPath, app);
-    }
-    outputs.apply(app.outputs);
-    outputsUi.pending = app.outputs;
-    std::snprintf(outputsUi.freedHost, sizeof outputsUi.freedHost, "%s", app.outputs.freedHost.c_str());
-    std::snprintf(outputsUi.oscHost, sizeof outputsUi.oscHost, "%s", app.outputs.oscHost.c_str());
-    std::snprintf(outputsUi.oscPrefix, sizeof outputsUi.oscPrefix, "%s", app.outputs.osc.prefix.c_str());
-    std::snprintf(outputsUi.otioHost, sizeof outputsUi.otioHost, "%s", app.outputs.otioHost.c_str());
-
     CaptureSession* session = nullptr;
+    std::unique_ptr<CaptureReplay> replay;
     int deviceIndex = 0;
-    auto selectByName = [&](const std::string& name) {
-        for (size_t i = 0; i < devices->size(); ++i)
-            if (devices->ports()[i].name == name) deviceIndex = int(i);
-    };
-    selectByName(app.deviceName);
-    int64_t inputConnection = app.inputConnection;
-    std::string profileMessage;
-    double rescanAt = 0;  // after a profile change the card re-enumerates asynchronously
+    int64_t inputConnection = 1;
+    std::string lastError, replayError, nameError;
+    char name[64] = "camera";
+    char logPath[512] = "";
+    char replayPath[1024] = "";
+    bool logRaw = true, recFromTc = true;
+    char redPosition[2] = {'A', 0};
     int selectedPacket = -1;
-    std::string lastError;
-    char logPath[512];
-    std::snprintf(logPath, sizeof logPath, "%s", app.logPath.c_str());
-    char replayPath[1024];
-    std::snprintf(replayPath, sizeof replayPath, "%s", app.replayPath.c_str());
-    bool replayAtLaunch = false;
-    std::string shotDir, shotPrefix = "shot";
-    for (int i = 1; i + 1 < argc; ++i) {
-        const std::string a = argv[i];
-        if (a == "--replay") {
-            std::snprintf(replayPath, sizeof replayPath, "%s", argv[++i]);
-            replayAtLaunch = true;
-        }
-        else if (a == "--screenshots") shotDir = argv[++i];
-        else if (a == "--screenshot-prefix") shotPrefix = argv[++i];
+
+    Feed() {
+        preview.conv = dlp::createVideoConversion();
+        preview.initGpu();
+        replay = std::make_unique<CaptureReplay>([this](FrameMetadata&& md) { handle(std::move(md)); });
     }
-    struct Shot { const char* tab; const char* sub; const char* name; };
-    static const Shot kShots[] = {{"Summary", nullptr, "summary"}, {"Input", nullptr, "input"},
-                                  {"Output", "FreeD", "output-freed"}, {"Output", "OSC", "output-osc"},
-                                  {"Output", "OpenTrackIO", "output-opentrackio"}, {"Output", "Log file", "output-log"},
-                                  {"Raw", nullptr, "raw"}};
-    size_t shotIndex = 0;
-    double shotAt = 0;
-    bool logRaw = app.logRaw;
-    bool recFromTc = app.recFromTc;
-    char redPosition[2] = {app.redPosition, 0};
-    float panelW = app.panelWidth;
-    preview.enabled = app.showVideo;
+    ~Feed() {
+        replay->stop();
+        stopCapture();
+        logger.close();
+        preview.release();
+    }
+    char redLetter() const { return redPosition[0] ? redPosition[0] : 'A'; }
+    void stopCapture() {
+        if (!session) return;
+        session->stop();
+        session->Release();
+        session = nullptr;
+    }
 
-    if (screenshots) panelW = 760.0f;
-    auto save = [&] {
-        if (screenshots) return;  // don't overwrite the user's settings
-        app.outputs = outputs.settings();
-        app.logPath = logPath;
-        app.replayPath = replayPath;
-        app.logRaw = logRaw;
-        app.recFromTc = recFromTc;
-        app.redPosition = redPosition[0] ? redPosition[0] : 'A';
-        if (deviceIndex < int(devices->size())) app.deviceName = devices->ports()[size_t(deviceIndex)].name;
-        app.inputConnection = inputConnection;
-        app.panelWidth = panelW;
-        app.showVideo = preview.enabled;
-        saveSettings(settingsPath, app);
-    };
-
-    auto handler = [&shared, &logger, &outputs](FrameMetadata&& md) {
+    // Capture / replay thread.
+    void handle(FrameMetadata&& md) {
         logger.write(md);
         outputs.onFrame(md);
         std::lock_guard<std::mutex> l(shared.mtx);
@@ -1116,60 +1045,219 @@ int main(int argc, char** argv) {
         ++shared.fpsWindowFrames;
         shared.latest = std::move(md);
         shared.hasFrame = true;
+    }
+
+    void load(const FeedSettings& fs) {
+        outputs.apply(fs.outputs);
+        outputsUi.pending = fs.outputs;
+        outputsUi.dirty = false;
+        std::snprintf(outputsUi.freedHost, sizeof outputsUi.freedHost, "%s", fs.outputs.freedHost.c_str());
+        std::snprintf(outputsUi.oscHost, sizeof outputsUi.oscHost, "%s", fs.outputs.oscHost.c_str());
+        std::snprintf(outputsUi.otioHost, sizeof outputsUi.otioHost, "%s", fs.outputs.otioHost.c_str());
+        std::snprintf(name, sizeof name, "%s", fs.name().c_str());
+        std::snprintf(logPath, sizeof logPath, "%s", fs.logPath.c_str());
+        std::snprintf(replayPath, sizeof replayPath, "%s", fs.replayPath.c_str());
+        logRaw = fs.logRaw;
+        recFromTc = fs.recFromTc;
+        redPosition[0] = fs.redPosition;
+        inputConnection = fs.inputConnection;
+    }
+
+    FeedSettings settings(const std::string& deviceName) const {
+        FeedSettings fs;
+        fs.outputs = outputs.settings();
+        fs.logPath = logPath;
+        fs.replayPath = replayPath;
+        fs.logRaw = logRaw;
+        fs.recFromTc = recFromTc;
+        fs.redPosition = redLetter();
+        fs.deviceName = deviceName;
+        fs.inputConnection = inputConnection;
+        return fs;
+    }
+
+    // Renames the feed: the OSC prefix follows at once (applied and pending), other unapplied edits stay pending.
+    void rename(const std::string& n) {
+        OutputSettings s = outputs.settings();
+        s.osc.prefix = "/" + n;
+        outputs.apply(s);
+        outputsUi.pending.osc.prefix = s.osc.prefix;
+    }
+};
+
+// Characters allowed in a feed name (it becomes an OSC address part): letters, digits, _ - . and / for sub-levels.
+int feedNameFilter(ImGuiInputTextCallbackData* d) {
+    const ImWchar c = d->EventChar;
+    return (c < 128 && std::isalnum(int(c))) || c == '_' || c == '-' || c == '.' || c == '/' ? 0 : 1;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    dlp::initialise();
+#ifdef __APPLE__
+    preventAppNap();
+#endif
+    std::signal(SIGINT, onSignal);
+    std::signal(SIGTERM, onSignal);
+
+    if (!glfwInit()) return 1;
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    // Screenshot mode uses a narrow window: replayed captures have no video, so the preview is kept small.
+    bool shotMode = false;
+    for (int i = 1; i < argc; ++i) shotMode |= std::strcmp(argv[i], "--screenshots") == 0;
+    GLFWwindow* window = glfwCreateWindow(shotMode ? 1000 : 1600, shotMode ? 1000 : 900, "SDI Metadata Viewer " SDIMETA_VERSION, nullptr, nullptr);
+    if (!window) { glfwTerminate(); return 1; }
+    glfwMakeContextCurrent(window);
+    glfwSetDropCallback(window, onDrop);
+    glfwSwapInterval(1);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::GetIO().IniFilename = nullptr;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 150");
+
+    auto devices = std::make_unique<DeckLinkDevices>();
+    std::vector<std::unique_ptr<Feed>> feeds;
+    size_t sel = 0;  // feed shown in the right-hand panel
+
+    // Restore the previous session's settings and start any outputs that were enabled.
+    const std::string settingsPath = defaultSettingsPath();
+    AppSettings app;
+    const bool screenshots = shotMode;
+    if (screenshots) {
+        // Defaults, sending to this machine only: keeps the user's hosts out of the images and off their network.
+        auto& o = app.feeds[0].outputs;
+        o.freedEnabled = o.oscEnabled = o.otioEnabled = true;
+        o.otioMulticast = false;
+    } else {
+        loadSettings(settingsPath, app);
+    }
+    auto indexByName = [&](const std::string& name, int fallback) {
+        for (size_t i = 0; i < devices->size(); ++i)
+            if (devices->ports()[i].name == name) return int(i);
+        return fallback;
+    };
+    auto deviceName = [&](const Feed& f) {
+        return f.deviceIndex < int(devices->size()) ? devices->ports()[size_t(f.deviceIndex)].name : std::string();
+    };
+    auto addFeed = [&](const FeedSettings& fs) {
+        feeds.push_back(std::make_unique<Feed>());
+        Feed& f = *feeds.back();
+        f.load(fs);
+        f.deviceIndex = indexByName(fs.deviceName, 0);
+        f.preview.enabled = app.showVideo;
+    };
+    for (const auto& fs : app.feeds) addFeed(fs);
+
+    // Rescan: re-enumerate and keep every feed on its port (by name). Running sessions hold their own device reference.
+    auto rescan = [&] {
+        std::vector<std::string> keep;
+        for (const auto& f : feeds) keep.push_back(deviceName(*f));
+        devices = std::make_unique<DeckLinkDevices>();
+        for (size_t i = 0; i < feeds.size(); ++i) feeds[i]->deviceIndex = indexByName(keep[i], 0);
     };
 
-    CaptureReplay replay(handler);
-    std::string replayError;
-    auto startReplay = [&] {
-        if (session) { session->stop(); session->Release(); session = nullptr; }
-        shared.reset();
-        replay.setRecFromTimecode(recFromTc);
-        replay.setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
-        if (replay.start(replayPath, replayError)) replayError.clear();
+    std::string profileMessage;
+    double rescanAt = 0;  // after a profile change the card re-enumerates asynchronously
+    bool replayAtLaunch = false;
+    std::string shotDir, shotPrefix = "shot";
+    for (int i = 1; i + 1 < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--replay") {
+            std::snprintf(feeds[0]->replayPath, sizeof feeds[0]->replayPath, "%s", argv[++i]);
+            replayAtLaunch = true;
+        }
+        else if (a == "--screenshots") shotDir = argv[++i];
+        else if (a == "--screenshot-prefix") shotPrefix = argv[++i];
+    }
+    struct Shot { const char* tab; const char* sub; const char* name; };
+    static const Shot kShots[] = {{"Summary", nullptr, "summary"}, {"Input", nullptr, "input"},
+                                  {"Output", "FreeD", "output-freed"}, {"Output", "OSC", "output-osc"},
+                                  {"Output", "OpenTrackIO", "output-opentrackio"}, {"Output", "Log file", "output-log"},
+                                  {"Raw", nullptr, "raw"}};
+    size_t shotIndex = 0;
+    double shotAt = 0;
+    float panelW = app.panelWidth;
+    bool showVideo = app.showVideo;
+
+    if (screenshots) panelW = 760.0f;
+    auto save = [&] {
+        if (screenshots) return;  // don't overwrite the user's settings
+        app.feeds.clear();
+        for (const auto& f : feeds) app.feeds.push_back(f->settings(deviceName(*f)));
+        app.panelWidth = panelW;
+        app.showVideo = showVideo;
+        saveSettings(settingsPath, app);
+    };
+
+    auto startReplay = [&](Feed& f) {
+        f.stopCapture();
+        f.shared.reset();
+        f.replay->setRecFromTimecode(f.recFromTc);
+        f.replay->setRedPositionLetter(f.redLetter());
+        if (f.replay->start(f.replayPath, f.replayError)) f.replayError.clear();
         save();
     };
-    if (replayAtLaunch) startReplay();
+    if (replayAtLaunch) startReplay(*feeds[0]);
+
+    // Another feed capturing from this port, or nullptr.
+    auto portUser = [&](int port, const Feed* except) -> const Feed* {
+        for (const auto& f : feeds)
+            if (f.get() != except && f->session && f->deviceIndex == port) return f.get();
+        return nullptr;
+    };
 
     while (!glfwWindowShouldClose(window) && !g_quit) {
         glfwPollEvents();
+        if (sel >= feeds.size()) sel = feeds.size() - 1;
+        Feed& F = *feeds[sel];
         {
             std::lock_guard<std::mutex> l(g_dropMtx);
             if (!g_dropped.empty()) {
-                std::snprintf(replayPath, sizeof replayPath, "%s", g_dropped.c_str());
+                std::snprintf(F.replayPath, sizeof F.replayPath, "%s", g_dropped.c_str());
                 g_dropped.clear();
-                startReplay();
+                startReplay(F);
             }
         }
-        preview.update(session);
+        for (auto& f : feeds) {
+            f->preview.enabled = showVideo;
+            f->preview.update(f->session);
+            const InputStatus fst = f->session ? f->session->status() : InputStatus{};
+            if (fst.rateNum > 0) f->outputs.setVideoRate(fst.rateNum, fst.rateDen);
+            if (f->replay->running()) {
+                int num, den;
+                f->replay->videoRate(num, den);
+                f->outputs.setVideoRate(num, den);
+            }
+        }
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // Snapshot shared state for this UI frame.
+        // Snapshot the selected feed's shared state for this UI frame.
         FrameMetadata md;
         std::map<uint16_t, PacketStats> stats;
         RddHistory rddHist, bmdHist;
         bool hasFrame;
         uint64_t frames;
-        double fps;
         {
-            std::lock_guard<std::mutex> l(shared.mtx);
-            md = shared.latest;
-            stats = shared.stats;
-            rddHist = shared.rddHistory;
-            bmdHist = shared.bmdHistory;
-            hasFrame = shared.hasFrame;
-            frames = shared.frames;
-            fps = shared.fps;
+            std::lock_guard<std::mutex> l(F.shared.mtx);
+            md = F.shared.latest;
+            stats = F.shared.stats;
+            rddHist = F.shared.rddHistory;
+            bmdHist = F.shared.bmdHistory;
+            hasFrame = F.shared.hasFrame;
+            frames = F.shared.frames;
         }
-        InputStatus st = session ? session->status() : InputStatus{};
-        if (st.rateNum > 0) outputs.setVideoRate(st.rateNum, st.rateDen);
-        if (replay.running()) {
-            int num, den;
-            replay.videoRate(num, den);
-            outputs.setVideoRate(num, den);
-        }
+        CaptureSession*& session = F.session;
+        CaptureReplay& replay = *F.replay;
 
         const ImGuiViewport* vp = ImGui::GetMainViewport();
         panelW = std::clamp(panelW, 320.0f, std::max(320.0f, vp->WorkSize.x - 240.0f));
@@ -1177,73 +1265,199 @@ int main(int argc, char** argv) {
         const ImGuiWindowFlags fixed = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                                        ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-        // Preview
+        // Feeds, stacked vertically; click one to show it in the right-hand panel
         ImGui::SetNextWindowPos(vp->WorkPos);
         ImGui::SetNextWindowSize(ImVec2(vp->WorkSize.x - panelW, vp->WorkSize.y));
-        ImGui::Begin("Preview", nullptr, fixed | ImGuiWindowFlags_NoScrollbar);
-        ImGui::PushTextWrapPos(0.0f);
-        ImGui::Checkbox("Show video", &preview.enabled);
+        ImGui::Begin("Feeds", nullptr, fixed | ImGuiWindowFlags_NoScrollbar);
+        if (ImGui::Checkbox("Show video", &showVideo)) save();
         ImGui::SameLine();
-        if (st.running)
-            ImGui::Text("%s  %ldx%ld  %s  |  %.2f fps measured", st.modeName.c_str(), st.width, st.height,
-                        st.rgb444 ? "RGB 4:4:4" : "YUV 4:2:2", fps);
-        ImVec2 avail = ImGui::GetContentRegionAvail();
-        if (replay.running()) {
-            ImGui::TextDisabled("Replaying a capture: metadata only (capture files hold no video).");
-        } else if (st.running && st.noSignal) {
-            ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "NO SIGNAL");
-        } else if (preview.tex && preview.enabled && preview.w > 0) {
-            float aspect = float(preview.w) / float(preview.h);
-            ImVec2 size(avail.x, avail.x / aspect);
-            if (size.y > avail.y) size = ImVec2(avail.y * aspect, avail.y);
-            ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + (avail.x - size.x) * 0.5f, ImGui::GetCursorPosY()));
-            ImGui::Image((ImTextureID)(intptr_t)preview.tex, size);
-        } else {
-            ImGui::TextDisabled(preview.conv ? "No video" : "Video converter unavailable (DeckLink driver missing?)");
+        if (ImGui::Button("+ Add feed")) {
+            std::vector<FeedSettings> existing;
+            for (const auto& f : feeds) existing.push_back(f->settings(deviceName(*f)));
+            FeedSettings fs = newFeedSettings(existing, F.settings(""));
+            addFeed(fs);
+            // Default to the first active port nobody is using.
+            Feed& nf = *feeds.back();
+            for (int i = 0; i < int(devices->size()); ++i) {
+                bool used = false;
+                for (const auto& f : feeds) used |= f.get() != &nf && f->deviceIndex == i;
+                if (!used && devices->ports()[size_t(i)].active()) { nf.deviceIndex = i; break; }
+            }
+            sel = feeds.size() - 1;
+            save();
         }
-        ImGui::PopTextWrapPos();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Adds another input. It copies this feed's output settings with a new name (OSC prefix),\n"
+                              "the next free FreeD camera ID and OpenTrackIO source number, and its own log file.");
+        {
+            const ImVec2 area = ImGui::GetContentRegionAvail();
+            const float gap = ImGui::GetStyle().ItemSpacing.y;
+            const float tileH = std::max(60.0f, (area.y - gap * float(feeds.size() - 1)) / float(feeds.size()));
+            for (size_t i = 0; i < feeds.size(); ++i) {
+                Feed& f = *feeds[i];
+                const bool isSel = i == sel && feeds.size() > 1;
+                ImGui::PushID(int(i));
+                if (isSel) {
+                    ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+                    ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 2.0f);
+                }
+                ImGui::BeginChild("tile", ImVec2(area.x, tileH), ImGuiChildFlags_Borders,
+                                  ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+                const InputStatus fst = f.session ? f.session->status() : InputStatus{};
+                RecState rec;
+                std::string tc;
+                double fps;
+                bool fHas;
+                {
+                    std::lock_guard<std::mutex> l(f.shared.mtx);
+                    rec = f.shared.latest.rec;
+                    tc = f.shared.latest.tc.str();
+                    fps = f.shared.fps;
+                    fHas = f.shared.hasFrame;
+                }
+                ImGui::TextColored(kYellow, "/%s", f.name);
+                ImGui::SameLine();
+                if (f.session) {
+                    ImGui::TextDisabled("%s", deviceName(f).c_str());
+                    ImGui::SameLine();
+                    if (fst.running && !fst.noSignal)
+                        ImGui::Text("%s  %ldx%ld  %s  %.2f fps", fst.modeName.c_str(), fst.width, fst.height,
+                                    fst.rgb444 ? "RGB 4:4:4" : "YUV 4:2:2", fps);
+                } else if (f.replay->running()) {
+                    ImGui::TextDisabled("Replaying %s", std::filesystem::path(f.replay->path()).filename().string().c_str());
+                } else {
+                    ImGui::TextDisabled("Not capturing");
+                }
+                if (fHas && (f.session || f.replay->running())) {
+                    ImGui::SameLine();
+                    ImGui::TextUnformatted(tc.c_str());
+                    if (rec == RecState::Recording) { ImGui::SameLine(); ImGui::TextColored(ImVec4(1, 0.2f, 0.2f, 1), "REC"); }
+                }
+                ImVec2 avail = ImGui::GetContentRegionAvail();
+                if (f.session && fst.running && fst.noSignal) {
+                    ImGui::TextColored(kRed, "NO SIGNAL");
+                } else if (f.session && f.preview.tex && showVideo && f.preview.w > 0) {
+                    const float aspect = float(f.preview.w) / float(f.preview.h);
+                    ImVec2 size(avail.x, avail.x / aspect);
+                    if (size.y > avail.y) size = ImVec2(avail.y * aspect, avail.y);
+                    ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + (avail.x - size.x) * 0.5f, ImGui::GetCursorPosY()));
+                    ImGui::Image((ImTextureID)(intptr_t)f.preview.tex, size);
+                } else if (f.replay->running()) {
+                    ImGui::TextDisabled("Replaying a capture: metadata only (capture files hold no video).");
+                } else if (f.session && showVideo) {
+                    ImGui::TextDisabled(f.preview.conv ? "No video" : "Video converter unavailable (DeckLink driver missing?)");
+                }
+                if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                    sel = i;
+                ImGui::EndChild();
+                if (isSel) { ImGui::PopStyleVar(); ImGui::PopStyleColor(); }
+                ImGui::PopID();
+            }
+        }
         ImGui::End();
 
-        // Metadata panel
+        // Metadata panel (selected feed)
         ImGui::SetNextWindowPos(ImVec2(vp->WorkPos.x + vp->WorkSize.x - panelW, vp->WorkPos.y));
         ImGui::SetNextWindowSize(ImVec2(panelW, vp->WorkSize.y));
         ImGui::Begin("Metadata", nullptr, fixed);
         ImGui::PushTextWrapPos(0.0f);  // wrap all text at the window / table-column edge instead of overflowing
 
+        // Feed name = OSC address prefix
+        {
+            ImGui::PushID(int(sel));
+            ImGui::SetNextItemWidth(ImGui::GetFontSize() * 12.0f);
+            ImGui::InputText("Feed name", F.name, sizeof F.name, ImGuiInputTextFlags_CallbackCharFilter, feedNameFilter);
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                std::string n = F.name;
+                while (!n.empty() && n.front() == '/') n.erase(n.begin());
+                while (!n.empty() && n.back() == '/') n.pop_back();
+                bool dup = false;
+                for (const auto& f : feeds) dup |= f.get() != &F && std::string(f->name) == n;
+                const std::string current = F.outputs.settings().osc.prefix.substr(1);
+                if (n.empty() || dup) {
+                    F.nameError = n.empty() ? "The name can't be empty." : "Another feed already uses /" + n + ".";
+                    std::snprintf(F.name, sizeof F.name, "%s", current.c_str());
+                } else {
+                    F.nameError.clear();
+                    std::snprintf(F.name, sizeof F.name, "%s", n.c_str());
+                    if (n != current) { F.rename(n); save(); }
+                }
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Advertised name: OSC addresses are /<name>/... (e.g. /camera/focus_distance).");
+            ImGui::SameLine();
+            ImGui::TextDisabled("OSC /%s/...", F.name);
+            if (feeds.size() > 1) {
+                ImGui::SameLine();
+                if (ImGui::SmallButton("Remove feed")) ImGui::OpenPopup("removefeed");
+                if (ImGui::BeginPopup("removefeed")) {
+                    ImGui::Text("Remove /%s? Its capture and outputs stop.", F.name);
+                    if (ImGui::Button("Remove")) {
+                        feeds.erase(feeds.begin() + std::ptrdiff_t(sel));
+                        sel = std::min(sel, feeds.size() - 1);
+                        save();
+                        ImGui::CloseCurrentPopup();
+                        ImGui::EndPopup();
+                        ImGui::PopID();
+                        ImGui::PopTextWrapPos();
+                        ImGui::End();
+                        ImGui::EndFrame();
+                        continue;  // the selected feed is gone: start the frame again
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+                    ImGui::EndPopup();
+                }
+            }
+            if (!F.nameError.empty()) ImGui::TextColored(kRed, "%s", F.nameError.c_str());
+            // IDs a receiver tells cameras apart by must differ between feeds sending to it
+            if (feeds.size() > 1) {
+                const OutputSettings& me = F.outputs.settings();
+                for (const auto& f : feeds) {
+                    if (f.get() == &F) continue;
+                    const OutputSettings& o = f->outputs.settings();
+                    if (me.freedEnabled && o.freedEnabled && me.freed.cameraId == o.freed.cameraId)
+                        ImGui::TextColored(kAmber, "FreeD camera ID %d is also used by /%s.", int(me.freed.cameraId), f->name);
+                    if (me.otioEnabled && o.otioEnabled && me.otio.sourceNumber == o.otio.sourceNumber)
+                        ImGui::TextColored(kAmber, "OpenTrackIO source number %d is also used by /%s.", me.otio.sourceNumber, f->name);
+                }
+            }
+            ImGui::PopID();
+        }
+        ImGui::Separator();
+
         if (rescanAt > 0 && glfwGetTime() >= rescanAt && !session) {
-            const std::string keep = deviceIndex < int(devices->size()) ? devices->ports()[size_t(deviceIndex)].name : "";
-            devices = std::make_unique<DeckLinkDevices>();
-            deviceIndex = 0;
-            selectByName(keep);
+            rescan();
             rescanAt = 0;
         }
+        int& deviceIndex = F.deviceIndex;
+        int64_t& inputConnection = F.inputConnection;
         if (!devices->driverPresent()) {
             ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "Blackmagic Desktop Video driver not found.");
         } else if (devices->size() == 0) {
             ImGui::TextDisabled("No DeckLink inputs found.");
-            if (ImGui::Button("Rescan")) devices = std::make_unique<DeckLinkDevices>();
+            if (ImGui::Button("Rescan")) rescan();
         } else {
             const auto& ports = devices->ports();
             if (deviceIndex >= int(ports.size())) deviceIndex = 0;
             ImGui::BeginDisabled(session != nullptr);
 
-            // Port (sub-device) list; ports inactive in the card's current profile can't be selected
+            // Port (sub-device) list; ports inactive in the card's current profile, or captured by another feed, can't
+            // be selected
             if (ImGui::BeginCombo("Input port", ports[size_t(deviceIndex)].label().c_str())) {
                 for (int i = 0; i < int(ports.size()); ++i) {
-                    ImGui::BeginDisabled(!ports[size_t(i)].active());
-                    if (ImGui::Selectable((ports[size_t(i)].label() + "##port" + std::to_string(i)).c_str(), i == deviceIndex))
+                    const Feed* user = portUser(i, &F);
+                    ImGui::BeginDisabled(!ports[size_t(i)].active() || user);
+                    std::string label = ports[size_t(i)].label();
+                    if (user) label += std::string("  (used by /") + user->name + ")";
+                    if (ImGui::Selectable((label + "##port" + std::to_string(i)).c_str(), i == deviceIndex))
                         deviceIndex = i;
                     ImGui::EndDisabled();
                 }
                 ImGui::EndCombo();
             }
             ImGui::SameLine();
-            if (ImGui::SmallButton("Rescan")) {
-                const std::string keep = ports[size_t(deviceIndex)].name;
-                devices = std::make_unique<DeckLinkDevices>();
-                deviceIndex = 0;
-                selectByName(keep);
-            }
+            if (ImGui::SmallButton("Rescan")) rescan();
             const DeckLinkPort& port = devices->ports()[size_t(deviceIndex)];
 
             // Connector, from what this port advertises
@@ -1290,7 +1504,8 @@ int main(int argc, char** argv) {
                         }
                         pending = 0;
                     }
-                    ImGui::TextColored(kAmber, "Changes the whole card, including any other app using it (e.g. Stage Precision).");
+                    ImGui::TextColored(kAmber, "Changes the whole card, including other feeds and any other app using it "
+                                               "(e.g. Stage Precision).");
                 }
                 ImGui::EndDisabled();
                 if (session) ImGui::TextDisabled("Stop capture to change the card profile.");
@@ -1301,27 +1516,29 @@ int main(int argc, char** argv) {
                                            "a profile with more ports.");
 
             if (!session) {
-                ImGui::BeginDisabled(!port.active() || replay.running());
+                const Feed* user = portUser(deviceIndex, &F);
+                ImGui::BeginDisabled(!port.active() || replay.running() || user);
                 if (ImGui::Button("Start capture")) {
-                    shared.reset();
-                    session = CaptureSession::create(devices->device(size_t(deviceIndex)), handler);
-                    session->setRecFromTimecode(recFromTc);
-                    session->setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
-                    if (!session->start(lastError, inputConnection)) { session->Release(); session = nullptr; }
-                    else lastError.clear();
+                    F.shared.reset();
+                    session = CaptureSession::create(devices->device(size_t(deviceIndex)), [p = &F](FrameMetadata&& m) {
+                        p->handle(std::move(m));
+                    });
+                    session->setRecFromTimecode(F.recFromTc);
+                    session->setRedPositionLetter(F.redLetter());
+                    if (!session->start(F.lastError, inputConnection)) { session->Release(); session = nullptr; }
+                    else F.lastError.clear();
                     save();
                 }
                 ImGui::EndDisabled();
+                if (user) { ImGui::SameLine(); ImGui::TextColored(kAmber, "Port in use by /%s", user->name); }
             } else if (ImGui::Button("Stop capture")) {
-                session->stop();
-                session->Release();
-                session = nullptr;
+                F.stopCapture();
             }
-            if (!lastError.empty()) ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "%s", lastError.c_str());
+            if (!F.lastError.empty()) ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "%s", F.lastError.c_str());
             if (session) ImGui::Text("Frames: %llu", (unsigned long long)frames);
-            if (ImGui::Checkbox("Record state from running timecode", &recFromTc)) {
-                if (session) session->setRecFromTimecode(recFromTc);
-                replay.setRecFromTimecode(recFromTc);
+            if (ImGui::Checkbox("Record state from running timecode", &F.recFromTc)) {
+                if (session) session->setRecFromTimecode(F.recFromTc);
+                replay.setRecFromTimecode(F.recFromTc);
             }
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Used when the camera sends no record flag (Sony), and only after timecode has been\n"
@@ -1331,19 +1548,20 @@ int main(int argc, char** argv) {
         // Replay a recorded capture (sdimeta_probe --raw) instead of a live input
         if (!session && ImGui::CollapsingHeader("Replay a capture file", replay.running() ? ImGuiTreeNodeFlags_DefaultOpen : 0)) {
             ImGui::TextDisabled("Plays back a capture recorded with sdimeta_probe --raw (e.g. the sample captures)\n"
-                                "through the same decoding and outputs, in a loop. You can also drop a file on the window.");
+                                "through the same decoding and outputs, in a loop. You can also drop a file on the window\n"
+                                "(it replays into the selected feed).");
             ImGui::BeginDisabled(replay.running());
-            ImGui::InputText("Capture file", replayPath, sizeof replayPath);
+            ImGui::InputText("Capture file", F.replayPath, sizeof F.replayPath);
             ImGui::EndDisabled();
             if (!replay.running()) {
-                if (ImGui::Button("Replay")) startReplay();
+                if (ImGui::Button("Replay")) startReplay(F);
             } else {
                 if (ImGui::Button("Stop replay")) replay.stop();
                 ImGui::SameLine();
                 ImGui::Text("Frame %zu / %zu  (%.0f s at %.2f fps, looping)", replay.position() + 1, replay.frameCount(),
                             replay.duration(), replay.fps());
             }
-            if (!replayError.empty()) ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "%s", replayError.c_str());
+            if (!F.replayError.empty()) ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "%s", F.replayError.c_str());
         }
 
         ImGui::Separator();
@@ -1354,23 +1572,25 @@ int main(int argc, char** argv) {
         manual.cameraModel = cs.record.str(Field::CameraModel);
         manual.sensorMode = cs.record.str(Field::SensorMode);
         manual.sensorModeNote = cs.record.get(Field::SensorMode).note;
-        manual.redPosition = redPosition;
-        applySensorOverride(cs, outputs.settings());
+        manual.redPosition = F.redPosition;
+        applySensorOverride(cs, F.outputs.settings());
+        ImGui::PushID(int(sel));  // per-feed widget state (tables, collapsing headers)
         if (ImGui::BeginTabBar("tabs")) {
             if (ImGui::BeginTabItem("Summary", nullptr, tabFlags("Summary", g_wantTab))) { drawSummary(md, hasFrame, cs); ImGui::EndTabItem(); }
             if (ImGui::BeginTabItem("Input", nullptr, tabFlags("Input", g_wantTab))) { drawInput(md, hasFrame, cs, rddHist, bmdHist); ImGui::EndTabItem(); }
             if (ImGui::BeginTabItem("Output", nullptr, tabFlags("Output", g_wantTab))) {
-                if (drawOutput(outputs, outputsUi, logger, logPath, sizeof logPath, logRaw, manual)) save();
+                if (drawOutput(F.outputs, F.outputsUi, F.logger, F.logPath, sizeof F.logPath, F.logRaw, manual)) save();
                 if (manual.redPositionChanged) {
-                    if (session) session->setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
-                    replay.setRedPositionLetter(redPosition[0] ? redPosition[0] : 'A');
+                    if (session) session->setRedPositionLetter(F.redLetter());
+                    replay.setRedPositionLetter(F.redLetter());
                     save();
                 }
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Raw", nullptr, tabFlags("Raw", g_wantTab))) { drawRaw(md, stats, selectedPacket); ImGui::EndTabItem(); }
+            if (ImGui::BeginTabItem("Raw", nullptr, tabFlags("Raw", g_wantTab))) { drawRaw(md, stats, F.selectedPacket); ImGui::EndTabItem(); }
             ImGui::EndTabBar();
         }
+        ImGui::PopID();
         ImGui::PopTextWrapPos();
         ImGui::End();
 
@@ -1413,10 +1633,7 @@ int main(int argc, char** argv) {
     }
 
     save();
-    replay.stop();
-    if (session) { session->stop(); session->Release(); }
-    logger.close();
-    preview.release();
+    feeds.clear();  // stops captures / replays, closes logs, frees GL textures (context still current)
     devices.reset();
 
     ImGui_ImplOpenGL3_Shutdown();

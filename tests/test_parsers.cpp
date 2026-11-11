@@ -697,46 +697,71 @@ int main() {
     // Settings round trip (string and file)
     {
         AppSettings a;
-        a.deviceName = "UltraStudio Express Recorder 3G";
+        a.feeds[0].deviceName = "UltraStudio Express Recorder 3G";
         a.panelWidth = 742.5f;
         a.showVideo = false;
-        a.recFromTc = false;
-        a.logPath = "/tmp/some log.jsonl";
-        a.outputs.freedEnabled = true;
-        a.outputs.freedHost = "192.168.10.2";
-        a.outputs.freedPort = 40001;
-        a.outputs.freed.cameraId = 3;
-        a.outputs.freed.zoomCountsPerMm = 123.25;
-        a.outputs.oscEnabled = true;
-        a.outputs.oscHost = "192.168.10.3";
-        a.outputs.osc.prefix = "/cam/a";
-        a.outputs.osc.focusUnit = FocusUnit::Feet;
-        a.outputs.osc.disabled = {"umid", "camera_serial"};
-        a.outputs.otioEnabled = true;
-        a.outputs.otioMulticast = false;
-        a.outputs.otioHost = "10.0.0.9";
-        a.outputs.otio.sourceNumber = 42;
-        a.outputs.otio.includeTransform = true;
-        a.outputs.osc.signs.invertTilt = a.outputs.osc.signs.invertRoll = true;
-        a.outputs.freed.signs.invertPan = true;
+        a.feeds[0].recFromTc = false;
+        a.feeds[0].logPath = "/tmp/some log.jsonl";
+        a.feeds[0].outputs.freedEnabled = true;
+        a.feeds[0].outputs.freedHost = "192.168.10.2";
+        a.feeds[0].outputs.freedPort = 40001;
+        a.feeds[0].outputs.freed.cameraId = 3;
+        a.feeds[0].outputs.freed.zoomCountsPerMm = 123.25;
+        a.feeds[0].outputs.oscEnabled = true;
+        a.feeds[0].outputs.oscHost = "192.168.10.3";
+        a.feeds[0].outputs.osc.prefix = "/cam/a";
+        a.feeds[0].outputs.osc.focusUnit = FocusUnit::Feet;
+        a.feeds[0].outputs.osc.disabled = {"umid", "camera_serial"};
+        a.feeds[0].outputs.otioEnabled = true;
+        a.feeds[0].outputs.otioMulticast = false;
+        a.feeds[0].outputs.otioHost = "10.0.0.9";
+        a.feeds[0].outputs.otio.sourceNumber = 42;
+        a.feeds[0].outputs.otio.includeTransform = true;
+        a.feeds[0].outputs.osc.signs.invertTilt = a.feeds[0].outputs.osc.signs.invertRoll = true;
+        a.feeds[0].outputs.freed.signs.invertPan = true;
         AppSettings b;
         settingsFromString(settingsToString(a), b);
         CHECK(settingsToString(a) == settingsToString(b));
-        CHECK(b.deviceName == a.deviceName && b.panelWidth == 742.5f && !b.showVideo && !b.recFromTc && b.logPath == a.logPath);
-        CHECK(b.outputs.freedHost == "192.168.10.2" && b.outputs.freedPort == 40001 && b.outputs.freed.cameraId == 3);
-        CHECK(b.outputs.osc.prefix == "/cam/a" && b.outputs.osc.focusUnit == FocusUnit::Feet && b.outputs.osc.disabled.size() == 2);
-        CHECK(!b.outputs.otioMulticast && b.outputs.otioHost == "10.0.0.9" && b.outputs.otio.sourceNumber == 42);
-        CHECK(b.outputs.osc.signs.invertTilt && b.outputs.osc.signs.invertRoll && !b.outputs.osc.signs.invertPan);
-        CHECK(b.outputs.freed.signs.invertPan && !b.outputs.freed.signs.invertTilt && !b.outputs.otio.signs.invertRoll);
+        CHECK(b.feeds[0].deviceName == a.feeds[0].deviceName && b.panelWidth == 742.5f && !b.showVideo && !b.feeds[0].recFromTc && b.feeds[0].logPath == a.feeds[0].logPath);
+        CHECK(b.feeds[0].outputs.freedHost == "192.168.10.2" && b.feeds[0].outputs.freedPort == 40001 && b.feeds[0].outputs.freed.cameraId == 3);
+        CHECK(b.feeds[0].outputs.osc.prefix == "/cam/a" && b.feeds[0].outputs.osc.focusUnit == FocusUnit::Feet && b.feeds[0].outputs.osc.disabled.size() == 2);
+        CHECK(!b.feeds[0].outputs.otioMulticast && b.feeds[0].outputs.otioHost == "10.0.0.9" && b.feeds[0].outputs.otio.sourceNumber == 42);
+        CHECK(b.feeds[0].outputs.osc.signs.invertTilt && b.feeds[0].outputs.osc.signs.invertRoll && !b.feeds[0].outputs.osc.signs.invertPan);
+        CHECK(b.feeds[0].outputs.freed.signs.invertPan && !b.feeds[0].outputs.freed.signs.invertTilt && !b.feeds[0].outputs.otio.signs.invertRoll);
         {   // a file from before roll_convention=2: its invert-roll (the old Stage Precision workaround) is dropped
             AppSettings old;
             settingsFromString("osc_invert=tr\nfreed_invert=r\n", old);
-            CHECK(old.outputs.osc.signs.invertTilt && !old.outputs.osc.signs.invertRoll && !old.outputs.freed.signs.invertRoll);
+            CHECK(old.feeds[0].outputs.osc.signs.invertTilt && !old.feeds[0].outputs.osc.signs.invertRoll && !old.feeds[0].outputs.freed.signs.invertRoll);
+        }
+        {   // several feeds: feed 1 keeps the unprefixed keys, others are "feedN."; new feeds get unique IDs
+            AppSettings m;
+            m.feeds[0].outputs.osc.prefix = "/camera";
+            m.feeds[0].outputs.freed.cameraId = 1;
+            m.feeds[0].outputs.oscHost = "10.1.1.1";
+            m.feeds.push_back(newFeedSettings(m.feeds, m.feeds[0]));
+            m.feeds.push_back(newFeedSettings(m.feeds, m.feeds[1]));
+            CHECK(m.feeds[1].name() == "camera2" && m.feeds[1].outputs.osc.prefix == "/camera2");
+            CHECK(m.feeds[2].name() == "camera3" && m.feeds[2].outputs.freed.cameraId == 3);
+            CHECK(m.feeds[1].outputs.otio.sourceNumber == 2 && m.feeds[1].outputs.oscHost == "10.1.1.1");
+            CHECK(m.feeds[1].logPath != m.feeds[0].logPath);
+            m.feeds[1].deviceName = "DeckLink 8K Pro (2)";
+            const std::string text = settingsToString(m);
+            CHECK(text.find("\nosc_prefix=/camera\n") != std::string::npos);
+            CHECK(text.find("\nfeed2.osc_prefix=/camera2\n") != std::string::npos);
+            AppSettings r;
+            settingsFromString(text, r);
+            CHECK(r.feeds.size() == 3 && settingsToString(r) == text && r.feeds[1].deviceName == "DeckLink 8K Pro (2)");
+            AppSettings one;  // a single-feed file (older versions) gives one feed
+            settingsFromString("osc_prefix=/cam\n", one);
+            CHECK(one.feeds.size() == 1 && one.feeds[0].name() == "cam");
+            AppSettings fewer = r;  // reading a 1-feed file into a 3-feed struct shrinks it
+            settingsFromString("feed_count=1\n", fewer);
+            CHECK(fewer.feeds.size() == 1);
         }
         // Missing / garbage values keep the defaults
         AppSettings c;
         settingsFromString("freed_port=abc\notio_source_number=999\nunknown=1\n", c);
-        CHECK(c.outputs.freedPort == 40000 && c.outputs.otio.sourceNumber == 200);
+        CHECK(c.feeds[0].outputs.freedPort == 40000 && c.feeds[0].outputs.otio.sourceNumber == 200);
         const std::string path = (std::filesystem::temp_directory_path() / "sdimeta_test" / "settings.ini").string();
         CHECK(saveSettings(path, a));
         AppSettings d;

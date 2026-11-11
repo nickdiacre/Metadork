@@ -77,7 +77,12 @@ and Blackmagic URSA.
 - `src/tools/Probe.cpp` (`sdimeta_probe [secs] [device] [--dump] [--watch] [--raw] [--list] [--hanc 524D,...]`; `--watch` prints every decoded
   change with TC, `--raw` every packet of every frame as hex): headless check of ANC packets, every TC source,
   and raw VANC lines (zero vs black vs ADF), with optional payload hex dump.
-- `src/main.cpp`: GLFW + Dear ImGui UI. Tabs: Summary (catalogue), Input (decoded fields of the detected camera,
+- Multiple feeds (`Feed` in main.cpp): each input has its own CaptureSession / CaptureReplay, Shared state, OutputManager,
+  JsonLogger and Preview; tiles stacked on the left, click selects the feed shown on the right. Feed name = OSC prefix
+  (`FeedSettings::name()` <- osc.prefix). Settings: feed 1 = original unprefixed keys (old files and versions keep
+  working), feeds 2+ = `feedN.` keys + `feed_count`. `newFeedSettings` copies a feed with the next camera name, FreeD
+  camera ID, OpenTrackIO source number and log file. A port can be captured by only one feed.
+- `src/main.cpp`: GLFW + Dear ImGui UI. Right panel tabs: Summary (catalogue), Input (decoded fields of the detected camera,
   TC/record state), Output ("Values the camera doesn't send" section shown only when needed: RED position letter, sensor size; then FreeD | OSC | OpenTrackIO | Log file sub-tabs, one Apply), Raw (ANC packets, hex, RDD 18
   stream). Preview: 10-bit YUV (v210) frames are uploaded as an RGB10_A2 texture and unpacked +
   colour-converted (601/709/2020 -> 709) in a GLSL 150 shader into an FBO texture, every frame (GL 2+ entry points loaded

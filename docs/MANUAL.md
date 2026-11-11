@@ -117,6 +117,26 @@ own input (an SDI split or a second port).
 **Record state from running timecode** (on by default) lets the app infer record state from Rec Run timecode for
 cameras that send no record flag. It only does this after it has seen the timecode stop. In Free Run it is never used.
 
+## Several cameras (feeds)
+
+Each input is a **feed**. The feeds are stacked down the left-hand side, each with its name, input, timecode, a red
+**REC** while recording, and its picture. Click a feed to show its data and settings in the right-hand panel.
+
+- **+ Add feed** adds another input. It copies the selected feed's output settings (hosts, ports, options) and gives
+  the new feed a unique name (`camera2`, `camera3` ...), the next free **FreeD camera ID**, the next free
+  **OpenTrackIO source number** (and so its own multicast group), and its own log file. Pick its input port and press
+  **Start capture**.
+- **Feed name** (top of the right-hand panel) is the name the feed advertises: its OSC addresses are
+  `/<name>/<variable>`, e.g. `/camera2/focus_distance`. Letters, digits, `_ - .` and `/` for sub-levels. A rename
+  takes effect immediately.
+- The panel warns if two feeds sending FreeD or OpenTrackIO use the same camera ID / source number.
+- Each feed has its own outputs, manual sensor size, RED position letter, log file and replay. A port can only be
+  captured by one feed.
+- **Remove feed** stops that feed's capture and outputs. Dropping a capture file on the window replays it into the
+  selected feed.
+
+The first feed keeps the original settings (an existing setup carries on sending `/camera/...` unchanged).
+
 ## The tabs
 
 ### Summary
@@ -172,7 +192,7 @@ launch, so enabled outputs start sending immediately.
 
 ### OSC
 
-One UDP message per value, at `<prefix>/<name>` (default prefix `/camera`), typed as float, int or string. The
+One UDP message per value, at `/<feed name>/<variable>` (default feed name `camera`), typed as float, int or string. The
 **Variables** table lists everything with a checkbox:
 
 - greyed rows are not supplied by the current camera and are never sent;
@@ -325,7 +345,7 @@ A `--raw` capture is the most useful thing to attach to a bug report or a reques
 
 ## Files and settings
 
-Settings (device, outputs, OSC variable choices, log options, panel width) are saved automatically:
+Settings (feeds, devices, outputs, OSC variable choices, log options, panel width) are saved automatically:
 
 - **macOS**: `~/Library/Application Support/SdiMetaViewer/settings.ini`
 - **Windows**: `%APPDATA%\SdiMetaViewer\settings.ini`
