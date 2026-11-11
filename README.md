@@ -1,3 +1,5 @@
+<img src="packaging/icon/metadork-1024.png" alt="" width="96" align="right">
+
 # Metadork
 
 *SDI camera metadata to FreeD, OSC and OpenTrackIO (formerly SDI Metadata Viewer).*

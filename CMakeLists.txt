@@ -110,6 +110,18 @@ else()
     list(APPEND APP_SOURCES "${DL_INCLUDE}/DeckLinkAPIDispatch.cpp")
 endif()
 
+# App icon (packaging/icon: drawn by make_icon.swift, see packaging/icon/README.md)
+if(APPLE)
+    set(METADORK_ICNS "${CMAKE_CURRENT_SOURCE_DIR}/packaging/icon/Metadork.icns")
+    set_source_files_properties(${METADORK_ICNS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    list(APPEND APP_SOURCES ${METADORK_ICNS})
+elseif(WIN32)
+    set(METADORK_ICO "${CMAKE_CURRENT_SOURCE_DIR}/packaging/icon/metadork.ico")
+    file(TO_CMAKE_PATH "${METADORK_ICO}" METADORK_ICO)
+    configure_file(packaging/icon/metadork.rc.in "${CMAKE_CURRENT_BINARY_DIR}/metadork.rc" @ONLY)
+    list(APPEND APP_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/metadork.rc")
+endif()
+
 if(APPLE)
     # A double-clickable .app; Info.plist carries the Local Network usage text macOS shows before the first send.
     add_executable(SdiMetaViewer MACOSX_BUNDLE ${APP_SOURCES})

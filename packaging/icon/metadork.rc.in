@@ -1,0 +1,2 @@
+// Windows exe icon. GLFW also uses the resource named GLFW_ICON for its windows (title bar / taskbar).
+GLFW_ICON ICON "@METADORK_ICO@"
