@@ -5,7 +5,8 @@ Stage Precision, Unreal Engine or anything else that speaks **FreeD**, **OSC** o
 lens data (focus / iris / zoom), camera orientation, timecode and record state from the same SDI cable that already
 carries the picture, instead of running extra data cables from the lens system.
 
-The camera is detected automatically and only the data it actually supplies is shown and sent.
+The camera is detected automatically and only the data it actually supplies is shown and sent. Several cameras can
+be captured at once (one feed per input), each with its own OSC name, FreeD camera ID and OpenTrackIO source number.
 
 **Download:** macOS and Windows builds are on the [Releases page](../../releases). **Manual:** [docs/MANUAL.md](docs/MANUAL.md).
 No camera to hand? The release includes sample captures from real cameras you can replay in the app.
