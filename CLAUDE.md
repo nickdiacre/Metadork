@@ -58,7 +58,7 @@ and Blackmagic URSA.
     because zero pan/position would override a real tracker; focal length goes out as pinholeFocalLength (nominal).
   - `Settings`: all UI settings (outputs incl. OSC variable choices, log, device, panel width) as key=value in
     ~/Library/Application Support/SdiMetaViewer/settings.ini (macOS) / %APPDATA%\SdiMetaViewer (Windows) /
-    ~/.config/sdimeta (Linux). Saved on Apply, Start capture, splitter release and exit (incl. Ctrl-C); restored and
+    ~/.config/sdimeta (Linux). Saved on Apply, port change, splitter release and exit (incl. Ctrl-C); restored and
     applied at launch, so enabled outputs start sending immediately.
   - `UdpSender` (POSIX + Winsock), `OutputManager` (sends on every captured frame; needs the video rate for timing).
   - macOS asks for Local Network permission the first time the app sends; sends fail silently until granted.
@@ -81,7 +81,9 @@ and Blackmagic URSA.
   JsonLogger and Preview; tiles stacked on the left, click selects the feed shown on the right. Feed name = OSC prefix
   (`FeedSettings::name()` <- osc.prefix). Settings: feed 1 = original unprefixed keys (old files and versions keep
   working), feeds 2+ = `feedN.` keys + `feed_count`. `newFeedSettings` copies a feed with the next camera name, FreeD
-  camera ID, OpenTrackIO source number and log file. A port can be captured by only one feed.
+  camera ID, OpenTrackIO source number and log file. A port can be captured by only one feed. No Start/Stop: choosing a
+  port captures from it (None stops); a per-frame reconcile opens each feed's port at launch / after changes and retries
+  failures every 3 s; a running replay pauses the feed's live input.
 - `src/main.cpp`: GLFW + Dear ImGui UI. Right panel tabs: Summary (catalogue), Input (decoded fields of the detected camera,
   TC/record state), Output ("Values the camera doesn't send" section shown only when needed: RED position letter, sensor size; then FreeD | OSC | OpenTrackIO | Log file sub-tabs, one Apply), Raw (ANC packets, hex, RDD 18
   stream). Preview: 10-bit YUV (v210) frames are uploaded as an RGB10_A2 texture and unpacked +

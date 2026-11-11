@@ -417,7 +417,7 @@ void drawCameraBanner(const CameraSample& cs) {
 }
 
 void drawSummary(const FrameMetadata& md, bool hasFrame, const CameraSample& cs) {
-    if (!hasFrame) { ImGui::TextDisabled("No frames yet. Choose an input and press Start capture."); return; }
+    if (!hasFrame) { ImGui::TextDisabled("No frames yet. Choose an input port (capture starts straight away)."); return; }
     drawCameraBanner(cs);
 
     ImGui::SetWindowFontScale(2.0f);
@@ -980,8 +980,9 @@ struct Feed {
     Preview preview;
     CaptureSession* session = nullptr;
     std::unique_ptr<CaptureReplay> replay;
-    int deviceIndex = 0;
+    int deviceIndex = -1;          // input port, -1 = none
     int64_t inputConnection = 1;
+    double retryAt = 0;            // next attempt to open the port after a failure
     std::string lastError, replayError, nameError;
     char name[64] = "camera";
     char logPath[512] = "";
@@ -1144,13 +1145,14 @@ int main(int argc, char** argv) {
         return fallback;
     };
     auto deviceName = [&](const Feed& f) {
-        return f.deviceIndex < int(devices->size()) ? devices->ports()[size_t(f.deviceIndex)].name : std::string();
+        return f.deviceIndex >= 0 && f.deviceIndex < int(devices->size()) ? devices->ports()[size_t(f.deviceIndex)].name
+                                                                             : std::string();
     };
     auto addFeed = [&](const FeedSettings& fs) {
         feeds.push_back(std::make_unique<Feed>());
         Feed& f = *feeds.back();
         f.load(fs);
-        f.deviceIndex = indexByName(fs.deviceName, 0);
+        f.deviceIndex = fs.deviceName.empty() ? -1 : indexByName(fs.deviceName, -1);
         f.preview.enabled = app.showVideo;
     };
     for (const auto& fs : app.feeds) addFeed(fs);
@@ -1160,7 +1162,7 @@ int main(int argc, char** argv) {
         std::vector<std::string> keep;
         for (const auto& f : feeds) keep.push_back(deviceName(*f));
         devices = std::make_unique<DeckLinkDevices>();
-        for (size_t i = 0; i < feeds.size(); ++i) feeds[i]->deviceIndex = indexByName(keep[i], 0);
+        for (size_t i = 0; i < feeds.size(); ++i) feeds[i]->deviceIndex = keep[i].empty() ? -1 : indexByName(keep[i], -1);
     };
 
     std::string profileMessage;
@@ -1213,6 +1215,25 @@ int main(int argc, char** argv) {
         return nullptr;
     };
 
+    // Opens the feed's chosen port. Failures are shown and retried (e.g. Stage Precision holding the port).
+    auto startCapture = [&](Feed& f) {
+        f.retryAt = glfwGetTime() + 3.0;
+        if (f.deviceIndex < 0 || f.deviceIndex >= int(devices->size())) return;
+        const DeckLinkPort& port = devices->ports()[size_t(f.deviceIndex)];
+        if (!port.active()) { f.lastError = "Port inactive in the card's current profile."; return; }
+        if (const Feed* user = portUser(f.deviceIndex, &f)) { f.lastError = std::string("Port in use by /") + user->name + "."; return; }
+        if (!(port.connections & f.inputConnection))
+            f.inputConnection = (port.connections & bmdVideoConnectionSDI) ? int64_t(bmdVideoConnectionSDI) : int64_t(port.connections & -port.connections);
+        f.shared.reset();
+        f.session = CaptureSession::create(devices->device(size_t(f.deviceIndex)), [p = &f](FrameMetadata&& m) {
+            p->handle(std::move(m));
+        });
+        f.session->setRecFromTimecode(f.recFromTc);
+        f.session->setRedPositionLetter(f.redLetter());
+        if (!f.session->start(f.lastError, f.inputConnection)) { f.session->Release(); f.session = nullptr; }
+        else f.lastError.clear();
+    };
+
     while (!glfwWindowShouldClose(window) && !g_quit) {
         glfwPollEvents();
         if (sel >= feeds.size()) sel = feeds.size() - 1;
@@ -1226,6 +1247,11 @@ int main(int argc, char** argv) {
             }
         }
         for (auto& f : feeds) {
+            // Keep each feed capturing from its chosen port (at launch, after a port / connector / profile change,
+            // and retrying after a failure), except while it replays a capture file.
+            if (!screenshots && f->deviceIndex >= 0 && !f->session && !f->replay->running() && rescanAt == 0 &&
+                glfwGetTime() >= f->retryAt)
+                startCapture(*f);
             f->preview.enabled = showVideo;
             f->preview.update(f->session);
             const InputStatus fst = f->session ? f->session->status() : InputStatus{};
@@ -1275,14 +1301,7 @@ int main(int argc, char** argv) {
             std::vector<FeedSettings> existing;
             for (const auto& f : feeds) existing.push_back(f->settings(deviceName(*f)));
             FeedSettings fs = newFeedSettings(existing, F.settings(""));
-            addFeed(fs);
-            // Default to the first active port nobody is using.
-            Feed& nf = *feeds.back();
-            for (int i = 0; i < int(devices->size()); ++i) {
-                bool used = false;
-                for (const auto& f : feeds) used |= f.get() != &nf && f->deviceIndex == i;
-                if (!used && devices->ports()[size_t(i)].active()) { nf.deviceIndex = i; break; }
-            }
+            addFeed(fs);  // no input port yet: the user picks one
             sel = feeds.size() - 1;
             save();
         }
@@ -1327,8 +1346,10 @@ int main(int argc, char** argv) {
                                     fst.rgb444 ? "RGB 4:4:4" : "YUV 4:2:2", fps);
                 } else if (f.replay->running()) {
                     ImGui::TextDisabled("Replaying %s", std::filesystem::path(f.replay->path()).filename().string().c_str());
+                } else if (f.deviceIndex >= 0 && !f.lastError.empty()) {
+                    ImGui::TextColored(kAmber, "%s: %s", deviceName(f).c_str(), f.lastError.c_str());
                 } else {
-                    ImGui::TextDisabled("Not capturing");
+                    ImGui::TextDisabled(f.deviceIndex >= 0 ? "Connecting..." : "No input selected");
                 }
                 if (fHas && (f.session || f.replay->running())) {
                     ImGui::SameLine();
@@ -1428,7 +1449,7 @@ int main(int argc, char** argv) {
         }
         ImGui::Separator();
 
-        if (rescanAt > 0 && glfwGetTime() >= rescanAt && !session) {
+        if (rescanAt > 0 && glfwGetTime() >= rescanAt) {
             rescan();
             rescanAt = 0;
         }
@@ -1441,124 +1462,125 @@ int main(int argc, char** argv) {
             if (ImGui::Button("Rescan")) rescan();
         } else {
             const auto& ports = devices->ports();
-            if (deviceIndex >= int(ports.size())) deviceIndex = 0;
-            ImGui::BeginDisabled(session != nullptr);
+            if (deviceIndex >= int(ports.size())) deviceIndex = -1;
 
-            // Port (sub-device) list; ports inactive in the card's current profile, or captured by another feed, can't
-            // be selected
-            if (ImGui::BeginCombo("Input port", ports[size_t(deviceIndex)].label().c_str())) {
+            // Port (sub-device) list. Choosing a port captures from it straight away; None stops. Ports inactive in the
+            // card's current profile, or captured by another feed, can't be chosen.
+            const std::string current = deviceIndex >= 0 ? ports[size_t(deviceIndex)].label() : "None (not capturing)";
+            if (ImGui::BeginCombo("Input port", current.c_str())) {
+                if (ImGui::Selectable("None (not capturing)", deviceIndex < 0) && deviceIndex >= 0) {
+                    deviceIndex = -1;
+                    F.stopCapture();
+                    F.lastError.clear();
+                    save();
+                }
                 for (int i = 0; i < int(ports.size()); ++i) {
                     const Feed* user = portUser(i, &F);
                     ImGui::BeginDisabled(!ports[size_t(i)].active() || user);
                     std::string label = ports[size_t(i)].label();
                     if (user) label += std::string("  (used by /") + user->name + ")";
-                    if (ImGui::Selectable((label + "##port" + std::to_string(i)).c_str(), i == deviceIndex))
+                    if (ImGui::Selectable((label + "##port" + std::to_string(i)).c_str(), i == deviceIndex) && i != deviceIndex) {
                         deviceIndex = i;
+                        F.stopCapture();  // the new port is opened below (reconnect)
+                        F.retryAt = 0;
+                        save();
+                    }
                     ImGui::EndDisabled();
                 }
                 ImGui::EndCombo();
             }
             ImGui::SameLine();
             if (ImGui::SmallButton("Rescan")) rescan();
-            const DeckLinkPort& port = devices->ports()[size_t(deviceIndex)];
 
-            // Connector, from what this port advertises
-            std::vector<int64_t> connectors;
-            for (int64_t bit = 1; bit <= (int64_t(1) << 8); bit <<= 1)
-                if (port.connections & bit) connectors.push_back(bit);
-            if (!(port.connections & inputConnection))
-                inputConnection = (port.connections & bmdVideoConnectionSDI) ? bmdVideoConnectionSDI : connectors.front();
-            if (connectors.size() > 1) {
-                if (ImGui::BeginCombo("Connector", videoConnectionName(inputConnection))) {
-                    for (int64_t c : connectors)
-                        if (ImGui::Selectable(videoConnectionName(c), c == inputConnection)) inputConnection = c;
-                    ImGui::EndCombo();
-                }
-            } else {
-                ImGui::TextDisabled("Connector: %s", videoConnectionName(inputConnection));
-            }
-            ImGui::EndDisabled();
-            ImGui::TextDisabled("%s  |  ARRI record flag (HANC): %s", port.model.empty() ? "DeckLink" : port.model.c_str(),
-                                port.hancInput ? "can capture" : "not supported by this device");
+            if (deviceIndex >= 0) {
+                const DeckLinkPort& port = devices->ports()[size_t(deviceIndex)];
 
-            // Card profile (multi-port cards): decides how many ports exist and whether they are full or half duplex
-            const auto profiles = devices->profiles(size_t(deviceIndex));
-            if (profiles.size() > 1) {
-                static int64_t pending = 0;
-                int64_t activeId = 0;
-                for (const auto& pr : profiles) if (pr.active) activeId = pr.id;
-                if (!pending) pending = activeId;
-                ImGui::BeginDisabled(session != nullptr || rescanAt > 0);
-                if (ImGui::BeginCombo("Card profile", profileIdName(pending))) {
-                    for (const auto& pr : profiles)
-                        if (ImGui::Selectable((pr.name + (pr.active ? "  (active)" : "")).c_str(), pr.id == pending)) pending = pr.id;
-                    ImGui::EndCombo();
-                }
-                if (pending != activeId) {
-                    ImGui::SameLine();
-                    if (ImGui::Button("Activate")) {
-                        std::string err;
-                        if (devices->activateProfile(size_t(deviceIndex), pending, err)) {
-                            profileMessage = std::string("Switching card to: ") + profileIdName(pending);
-                            rescanAt = glfwGetTime() + 1.5;
-                        } else {
-                            profileMessage = err;
-                        }
-                        pending = 0;
+                // Connector, from what this port advertises; changing it reopens the input
+                std::vector<int64_t> connectors;
+                for (int64_t bit = 1; bit <= (int64_t(1) << 8); bit <<= 1)
+                    if (port.connections & bit) connectors.push_back(bit);
+                if (!(port.connections & inputConnection))
+                    inputConnection = (port.connections & bmdVideoConnectionSDI) ? bmdVideoConnectionSDI : connectors.front();
+                if (connectors.size() > 1) {
+                    if (ImGui::BeginCombo("Connector", videoConnectionName(inputConnection))) {
+                        for (int64_t c : connectors)
+                            if (ImGui::Selectable(videoConnectionName(c), c == inputConnection) && c != inputConnection) {
+                                inputConnection = c;
+                                F.stopCapture();
+                                F.retryAt = 0;
+                                save();
+                            }
+                        ImGui::EndCombo();
                     }
-                    ImGui::TextColored(kAmber, "Changes the whole card, including other feeds and any other app using it "
-                                               "(e.g. Stage Precision).");
+                } else {
+                    ImGui::TextDisabled("Connector: %s", videoConnectionName(inputConnection));
                 }
-                ImGui::EndDisabled();
-                if (session) ImGui::TextDisabled("Stop capture to change the card profile.");
-                if (!profileMessage.empty()) ImGui::TextDisabled("%s", profileMessage.c_str());
-            }
-            if (!port.active())
-                ImGui::TextColored(kAmber, "This port is inactive in the card's current profile. Pick an active port, or "
-                                           "a profile with more ports.");
+                ImGui::TextDisabled("%s  |  ARRI record flag (HANC): %s", port.model.empty() ? "DeckLink" : port.model.c_str(),
+                                    port.hancInput ? "can capture" : "not supported by this device");
 
-            if (!session) {
-                const Feed* user = portUser(deviceIndex, &F);
-                ImGui::BeginDisabled(!port.active() || replay.running() || user);
-                if (ImGui::Button("Start capture")) {
-                    F.shared.reset();
-                    session = CaptureSession::create(devices->device(size_t(deviceIndex)), [p = &F](FrameMetadata&& m) {
-                        p->handle(std::move(m));
-                    });
-                    session->setRecFromTimecode(F.recFromTc);
-                    session->setRedPositionLetter(F.redLetter());
-                    if (!session->start(F.lastError, inputConnection)) { session->Release(); session = nullptr; }
-                    else F.lastError.clear();
-                    save();
+                // Card profile (multi-port cards): decides how many ports exist and whether they are full or half duplex
+                const auto profiles = devices->profiles(size_t(deviceIndex));
+                if (profiles.size() > 1) {
+                    static int64_t pending = 0;
+                    int64_t activeId = 0;
+                    for (const auto& pr : profiles) if (pr.active) activeId = pr.id;
+                    if (!pending) pending = activeId;
+                    ImGui::BeginDisabled(rescanAt > 0);
+                    if (ImGui::BeginCombo("Card profile", profileIdName(pending))) {
+                        for (const auto& pr : profiles)
+                            if (ImGui::Selectable((pr.name + (pr.active ? "  (active)" : "")).c_str(), pr.id == pending)) pending = pr.id;
+                        ImGui::EndCombo();
+                    }
+                    if (pending != activeId) {
+                        ImGui::SameLine();
+                        if (ImGui::Button("Activate")) {
+                            F.stopCapture();  // reconnects after the card has re-enumerated
+                            std::string err;
+                            if (devices->activateProfile(size_t(deviceIndex), pending, err)) {
+                                profileMessage = std::string("Switching card to: ") + profileIdName(pending);
+                                rescanAt = glfwGetTime() + 1.5;
+                            } else {
+                                profileMessage = err;
+                            }
+                            pending = 0;
+                        }
+                        ImGui::TextColored(kAmber, "Changes the whole card, including other feeds and any other app using it "
+                                                   "(e.g. Stage Precision).");
+                    }
+                    ImGui::EndDisabled();
+                    if (!profileMessage.empty()) ImGui::TextDisabled("%s", profileMessage.c_str());
                 }
-                ImGui::EndDisabled();
-                if (user) { ImGui::SameLine(); ImGui::TextColored(kAmber, "Port in use by /%s", user->name); }
-            } else if (ImGui::Button("Stop capture")) {
-                F.stopCapture();
+                if (!port.active())
+                    ImGui::TextColored(kAmber, "This port is inactive in the card's current profile. Pick an active port, or "
+                                               "a profile with more ports.");
             }
-            if (!F.lastError.empty()) ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "%s", F.lastError.c_str());
+            if (replay.running() && deviceIndex >= 0)
+                ImGui::TextColored(kAmber, "Paused while a capture file replays; stop the replay to resume.");
+            else if (!F.lastError.empty())
+                ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "%s  (retrying)", F.lastError.c_str());
             if (session) ImGui::Text("Frames: %llu", (unsigned long long)frames);
             if (ImGui::Checkbox("Record state from running timecode", &F.recFromTc)) {
                 if (session) session->setRecFromTimecode(F.recFromTc);
                 replay.setRecFromTimecode(F.recFromTc);
+                save();
             }
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Used when the camera sends no record flag (Sony), and only after timecode has been\n"
                                   "seen stopped (proving Rec Run TC). In Free Run it is never used.");
         }
 
-        // Replay a recorded capture (sdimeta_probe --raw) instead of a live input
-        if (!session && ImGui::CollapsingHeader("Replay a capture file", replay.running() ? ImGuiTreeNodeFlags_DefaultOpen : 0)) {
+        // Replay a recorded capture (sdimeta_probe --raw) instead of the live input
+        if (ImGui::CollapsingHeader("Replay a capture file", replay.running() ? ImGuiTreeNodeFlags_DefaultOpen : 0)) {
             ImGui::TextDisabled("Plays back a capture recorded with sdimeta_probe --raw (e.g. the sample captures)\n"
-                                "through the same decoding and outputs, in a loop. You can also drop a file on the window\n"
-                                "(it replays into the selected feed).");
+                                "through the same decoding and outputs, in a loop, pausing this feed's live input.\n"
+                                "You can also drop a file on the window (it replays into the selected feed).");
             ImGui::BeginDisabled(replay.running());
             ImGui::InputText("Capture file", F.replayPath, sizeof F.replayPath);
             ImGui::EndDisabled();
             if (!replay.running()) {
                 if (ImGui::Button("Replay")) startReplay(F);
             } else {
-                if (ImGui::Button("Stop replay")) replay.stop();
+                if (ImGui::Button("Stop replay")) { replay.stop(); F.shared.reset(); F.retryAt = 0; }
                 ImGui::SameLine();
                 ImGui::Text("Frame %zu / %zu  (%.0f s at %.2f fps, looping)", replay.position() + 1, replay.frameCount(),
                             replay.duration(), replay.fps());

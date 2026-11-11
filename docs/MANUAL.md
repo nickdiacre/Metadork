@@ -105,11 +105,13 @@ metadata only, so the video area stays empty.
      embedded metadata.
    - On the VENICE 2 only one of the two SDI outputs carried metadata in our tests.
    - Make sure the camera's SDI metadata output is enabled (see the camera's manual).
-2. **Pick the input** in the panel on the right.
+2. **Pick the input port** in the panel on the right.
    - Multi-port cards (DeckLink 8K Pro etc.) list one entry per port.
    - The card's **profile** decides which ports exist and whether they are inputs. Change it with **Card profile** →
      **Activate**. This changes the whole card, including for any other app using it.
-3. Press **Start capture**. The preview shows the picture, and the panel fills with metadata within a frame or two.
+3. Capture starts as soon as a port is chosen: the preview shows the picture, and the panel fills with metadata within
+   a frame or two. Choosing another port switches to it; **None** stops. The app reconnects to the same port at the next
+   launch, and if the port can't be opened (e.g. another app holds it) it shows why and keeps retrying.
 
 Only one application can use a DeckLink input at a time. If Stage Precision also captures that SDI feed, give each its
 own input (an SDI split or a second port).
@@ -124,8 +126,8 @@ Each input is a **feed**. The feeds are stacked down the left-hand side, each wi
 
 - **+ Add feed** adds another input. It copies the selected feed's output settings (hosts, ports, options) and gives
   the new feed a unique name (`camera2`, `camera3` ...), the next free **FreeD camera ID**, the next free
-  **OpenTrackIO source number** (and so its own multicast group), and its own log file. Pick its input port and press
-  **Start capture**.
+  **OpenTrackIO source number** (and so its own multicast group), and its own log file. Pick its input port and it starts
+  capturing.
 - **Feed name** (top of the right-hand panel) is the name the feed advertises: its OSC addresses are
   `/<name>/<variable>`, e.g. `/camera2/focus_distance`. Letters, digits, `_ - .` and `/` for sub-levels. A rename
   takes effect immediately.
