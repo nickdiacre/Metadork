@@ -5,7 +5,7 @@ Reads camera metadata (lens focus / iris / zoom, timecode, record state, clip na
 on a Blackmagic DeckLink or UltraStudio device and sends it to Stage Precision, Unreal Engine and other tools over
 FreeD, OSC and OpenTrackIO.
 
-Manual: https://github.com/nickdiacre/sdi-metadata-viewer/blob/main/docs/MANUAL.md
+Manual: https://github.com/nickdiacre/Metadork/blob/main/docs/MANUAL.md
 
 Before you start
 - Install Blackmagic Desktop Video (the DeckLink / UltraStudio driver): https://www.blackmagicdesign.com/support

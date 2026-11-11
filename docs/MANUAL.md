@@ -64,7 +64,7 @@ A wireless follow focus that isn't connected to the camera does not put focus da
 ## Install
 
 Download the zip for your system from the
-[Releases page](https://github.com/nickdiacre/sdi-metadata-viewer/releases). It contains:
+[Releases page](https://github.com/nickdiacre/Metadork/releases). It contains:
 
 - the app;
 - `sdimeta_probe`, a command-line diagnostic tool;
