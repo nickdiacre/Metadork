@@ -1636,6 +1636,9 @@ int main(int argc, char** argv) {
         ImGui::SetNextWindowSize(ImVec2(grip, vp->WorkSize.y));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        // Without this ImGui widens the window to its 32 px minimum, and the invisible splitter (on top of everything)
+        // swallowed clicks on the checkboxes and arrows along the right panel's left edge.
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(1, 1));
         ImGui::Begin("##splitter", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
                                                 ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings);
         ImGui::InvisibleButton("##drag", ImVec2(grip, vp->WorkSize.y));
@@ -1643,7 +1646,7 @@ int main(int argc, char** argv) {
         if (ImGui::IsItemActive()) panelW -= ImGui::GetIO().MouseDelta.x;
         if (ImGui::IsItemDeactivated()) save();
         ImGui::End();
-        ImGui::PopStyleVar(2);
+        ImGui::PopStyleVar(3);
 
         ImGui::Render();
         int fbw, fbh;
